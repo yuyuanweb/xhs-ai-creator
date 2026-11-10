@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { pageScopedHmr, tunnelListen } from './vite.tunnel';
 
 const API = 'http://127.0.0.1:18472';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), pageScopedHmr()],
   server: {
+    ...tunnelListen(),
     port: 18473,
     strictPort: true,
     proxy: {
@@ -15,3 +17,4 @@ export default defineConfig({
     },
   },
 });
+

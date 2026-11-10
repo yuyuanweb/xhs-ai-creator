@@ -1,16 +1,23 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import { ExpressAdapter, NestExpressApplication } from '@nestjs/platform-express';
+import express from 'express';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/response.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { mountWebApp, resolveWebDist } from './web-app';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const server = express();
+  const webDist = resolveWebDist();
+  if (webDist) mountWebApp(server, webDist);
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter(server));
   const config = app.get(ConfigService);
+  if (webDist) new Logger('WebApp').log(`托管前端 ${webDist}`);
 
   app.setGlobalPrefix('api');
   // 整份卡片稿和外部 Agent 交来的初稿都是几十 KB 的中文 JSON，默认的 100kb 上限经常不够

@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+apps/server/storage
+素材
+需求
+.git
+.cursor
+.DS_Store

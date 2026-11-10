@@ -1,4 +1,5 @@
-# 本地开发用的 PostgreSQL：docker compose up -d postgres
+# 本地开发只起数据库：docker compose up -d postgres
+# 整套部署：docker compose --profile deploy up -d --build
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,5 +18,22 @@ services:
       timeout: 3s
       retries: 10
 
+  app:
+    profiles: ["deploy"]
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 模型 Key、JWT 密钥、管理员账号都放在 apps/server/.env
+    env_file: apps/server/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/rednote_studio?schema=public
+    ports:
+      - "18472:18472"
+    volumes:
+      - storage:/app/apps/server/storage
+
 volumes:
   pg-data:
+  storage:
