@@ -13,4 +13,6 @@ export * from './copy-style.js';
 export * from './images.js';
 export * from './outline.js';
 export * from './article-index.js';
+export * from './patches.js';
+export * from './layout-todo.js';
 export * from './overlays.js';

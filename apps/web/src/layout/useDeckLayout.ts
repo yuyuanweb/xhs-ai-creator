@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { ArticleIndex, CardBlock, Deck, LayoutPage, LayoutReport } from '@rcs/shared';
+import type { ArticleIndex, CardBlock, Deck, LayoutPage, LayoutReport, LayoutSnapshot } from '@rcs/shared';
 import { EMPTY_MEASUREMENTS, type Measurements } from '../render/Measurer';
 import { paginate } from './paginate';
-import { buildReport, imageUsage } from './report';
+import { buildReport, buildSnapshot, imageUsage } from './report';
 
 export interface DeckLayout {
   activeBlocks: CardBlock[];
   blockMap: Map<string, CardBlock>;
   pages: LayoutPage[];
   report: LayoutReport;
+  snapshot: () => LayoutSnapshot;
   /** 测高落定前不要渲染卡片，否则会闪一屏错误的分页 */
   measured: boolean;
   /** 高度和当前内容、字号完全对得上。Agent 只能读这时的体检结果，否则改了文字拿到的还是旧分页 */
@@ -29,7 +30,7 @@ function metricsKeyOf(deck: Deck): string {
 
 /**
  * 排版的单一入口：测高结果进来，分页和体检结果出去。
- * 编辑器预览、AI 生成后的体检、导出三条路径都读这里的输出，
+ * 编辑器预览、Agent 的 measure_layout、导出三条路径都读这里的输出，
  * 所以不存在「预览一个样、导出另一个样」的可能。
  */
 export function useDeckLayout(deck: Deck, source: ArticleIndex): DeckLayout {
@@ -57,6 +58,11 @@ export function useDeckLayout(deck: Deck, source: ArticleIndex): DeckLayout {
     [pages, deck.contentType, usage],
   );
 
+  const snapshot = useCallback(
+    () => buildSnapshot(pages, activeBlocks, deck.contentType, deck.settings, usage),
+    [pages, activeBlocks, deck.contentType, deck.settings, usage],
+  );
+
   const onMeasure = useCallback(
     (m: Measurements, blocks: CardBlock[]) => {
       setCache((prev) => {
@@ -69,7 +75,7 @@ export function useDeckLayout(deck: Deck, source: ArticleIndex): DeckLayout {
     [metricsKey],
   );
 
-  return { activeBlocks, blockMap, pages, report, measured, settled, onMeasure };
+  return { activeBlocks, blockMap, pages, report, snapshot, measured, settled, onMeasure };
 }
 
 function sameMeasurements(a: Measurements, b: Measurements): boolean {

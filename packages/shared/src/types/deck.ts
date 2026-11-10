@@ -67,6 +67,8 @@ export interface CardBlock {
  */
 export type CoverVariant = 'poster' | 'digest' | 'headline' | 'checklist';
 
+export const COVER_VARIANTS: CoverVariant[] = ['poster', 'digest', 'headline', 'checklist'];
+
 export interface CoverFlowNode {
   title: string;
   lines: string[];

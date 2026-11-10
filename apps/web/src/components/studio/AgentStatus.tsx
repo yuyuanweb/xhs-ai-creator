@@ -6,13 +6,14 @@ const PHASE_TEXT: Record<AgentPhase, string> = {
   idle: '',
   drafting: '正在写初稿',
   measuring: '正在测量排版',
+  revising: '正在修订',
   done: '已完成',
   failed: '失败',
 };
 
 /** 顶栏上的一行进度 */
 export function AgentStatus({ agent }: { agent: UseAgentResult }) {
-  const { phase, note, error } = agent.state;
+  const { phase, round, maxRounds, note, error } = agent.state;
   if (phase === 'idle') return <div className="st-status" />;
 
   const text = error || note || PHASE_TEXT[phase];
@@ -20,6 +21,11 @@ export function AgentStatus({ agent }: { agent: UseAgentResult }) {
     <div className={`st-status is-${phase}`}>
       <i />
       <span>{text}</span>
+      {agent.running && round > 0 ? (
+        <em>
+          {round}/{maxRounds}
+        </em>
+      ) : null}
     </div>
   );
 }
@@ -30,13 +36,14 @@ export function AgentStatus({ agent }: { agent: UseAgentResult }) {
  */
 export function AgentLock({ agent }: { agent: UseAgentResult }) {
   if (!agent.running) return null;
-  const { phase } = agent.state;
+  const { phase, round, maxRounds } = agent.state;
 
   return (
     <div className="st-lock" role="status">
       <i />
       <b>
         {PHASE_TEXT[phase]}
+        {round > 0 ? ` · 第 ${round}/${maxRounds} 轮` : ''}
       </b>
       <span>完成前卡片和面板都不能编辑</span>
       <button type="button" onClick={agent.stop}>

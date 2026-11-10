@@ -1,4 +1,6 @@
 import type {
+  AgentMessage,
+  AgentStepResponse,
   Deck,
   DeckSettings,
   DraftProposal,
@@ -87,6 +89,8 @@ export const deckApi = {
 export const agentApi = {
   draft: (deckId: string, model?: string, signal?: AbortSignal) =>
     api.post<DraftProposal>(`/agent/decks/${deckId}/draft`, { model }, { signal }),
+  step: (deckId: string, messages: AgentMessage[], model?: string, signal?: AbortSignal) =>
+    api.post<AgentStepResponse>(`/agent/decks/${deckId}/step`, { messages, model }, { signal }),
 };
 
 export const libraryApi = {

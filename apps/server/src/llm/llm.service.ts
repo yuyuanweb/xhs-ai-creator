@@ -1,12 +1,13 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import type { AgentMessage, AgentStepResponse } from '@rcs/shared';
+import type { AgentMessage, AgentStepResponse, AgentToolCall, AgentToolName } from '@rcs/shared';
 
 const MAX_OUTPUT_TOKENS = 8192;
 
 export interface ChatOptions {
   model?: string;
+  tools?: typeof import('./tools').AGENT_TOOLS;
   /** 要求模型只输出 JSON。不是所有厂商都支持，不支持时退回靠提示词约束 */
   jsonMode?: boolean;
   temperature?: number;
@@ -37,10 +38,11 @@ export class LlmService {
     try {
       res = await this.client.chat.completions.create({
         model: opts.model || this.defaultModel,
-        messages: messages.map((m) => ({ role: m.role, content: m.content ?? '' })),
+        messages: messages.map(toOpenAiMessage),
         temperature: opts.temperature ?? 0.7,
-        // 初稿很长，厂商默认的输出上限会把 JSON 截成半截
+        // 初稿和一轮修版的补丁都很长，厂商默认的输出上限会把 JSON 截成半截
         max_tokens: MAX_OUTPUT_TOKENS,
+        ...(opts.tools ? { tools: opts.tools, tool_choice: 'auto' as const } : {}),
         ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
       });
     } catch (err) {
@@ -50,12 +52,27 @@ export class LlmService {
     const choice = res.choices[0];
     if (!choice) throw new InternalServerErrorException('模型没有返回内容');
 
+    const toolCalls: AgentToolCall[] = (choice.message.tool_calls ?? []).flatMap((call) => {
+      if (call.type !== 'function') return [];
+      const parsed = parseArgs(call.function.arguments);
+      if (parsed.error) this.logger.warn(`工具参数解析失败 ${call.function.name}（${call.function.arguments.length} 字）：${parsed.error}`);
+      return [
+        {
+          id: call.id,
+          name: call.function.name as AgentToolName,
+          args: parsed.args,
+          ...(parsed.error ? { parseError: parsed.error } : {}),
+        },
+      ];
+    });
+
     return {
       message: {
         role: 'assistant',
         content: choice.message.content ?? undefined,
+        ...(toolCalls.length ? { toolCalls } : {}),
       },
-      finishReason: choice.finish_reason === 'length' ? 'length' : 'stop',
+      finishReason: choice.finish_reason === 'tool_calls' ? 'tool_calls' : choice.finish_reason === 'length' ? 'length' : 'stop',
       usage: res.usage
         ? { promptTokens: res.usage.prompt_tokens, completionTokens: res.usage.completion_tokens }
         : undefined,
@@ -84,6 +101,28 @@ export class LlmService {
   }
 }
 
+function toOpenAiMessage(m: AgentMessage): OpenAI.Chat.ChatCompletionMessageParam {
+  if (m.role === 'tool') {
+    return { role: 'tool', tool_call_id: m.toolCallId ?? '', content: m.content ?? '' };
+  }
+  if (m.role === 'assistant') {
+    return {
+      role: 'assistant',
+      content: m.content ?? null,
+      ...(m.toolCalls?.length
+        ? {
+            tool_calls: m.toolCalls.map((c) => ({
+              id: c.id,
+              type: 'function' as const,
+              function: { name: c.name, arguments: JSON.stringify(c.args ?? {}) },
+            })),
+          }
+        : {}),
+    };
+  }
+  return { role: m.role, content: m.content ?? '' };
+}
+
 /** 通义只写了主机名时，补上 OpenAI 兼容路径，否则会打到不存在的 /chat/completions */
 function normalizeBaseUrl(raw: string | undefined): string | undefined {
   if (!raw) return raw;
@@ -101,4 +140,16 @@ function describeLlmError(err: unknown): string {
   if (status === 401) return '大模型鉴权失败：检查 LLM_API_KEY';
   if (/timeout|timed out|aborted/i.test(message)) return '大模型响应超时，点「生成初稿」再试一次';
   return `调用大模型失败：${message}`;
+}
+
+/**
+ * 参数太长时模型输出会被截断成半截 JSON。不能悄悄当成空参数执行——那样模型以为改了，其实什么都没发生，
+ * 下一轮还会原样再犯。解析失败要带着原因回给它
+ */
+function parseArgs(raw: string): { args: unknown; error?: string } {
+  try {
+    return { args: JSON.parse(raw) };
+  } catch (err) {
+    return { args: {}, error: err instanceof Error ? err.message : 'JSON 解析失败' };
+  }
 }

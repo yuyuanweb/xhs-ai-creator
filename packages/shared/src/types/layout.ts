@@ -1,3 +1,5 @@
+import { MIN_FILL } from '../constants/canvas.js';
+
 /** 一页正文卡片的排版结果 */
 export interface LayoutPage {
   index: number;
@@ -37,4 +39,38 @@ export interface LayoutReport {
   /** 截图张数的合理区间：按内容类型定，原文可用的图不够下限时取原文张数 */
   imagesMin: number;
   imagesMax: number;
+}
+
+/** 体检是否算通过。Agent 达标即停 */
+export function isLayoutHealthy(report: LayoutReport): boolean {
+  return (
+    report.overflowPages.length === 0 &&
+    report.thinPages.length === 0 &&
+    !report.exceedsPlatformLimit &&
+    report.withinTarget &&
+    imageGap(report) === 0
+  );
+}
+
+/** 截图张数偏离区间多少：正数是还差几张，负数是多了几张 */
+export function imageGap(report: LayoutReport): number {
+  if (report.imagesUsed < report.imagesMin) return report.imagesMin - report.imagesUsed;
+  if (report.imagesUsed > report.imagesMax) return report.imagesMax - report.imagesUsed;
+  return 0;
+}
+
+/**
+ * 越小越好。用来判断这一轮是不是真的改好了，没进步就停，避免空转。
+ * 过空页按缺口深浅计分：把一页从五成填到七成也算进步，只数页数会把这种修改判成白干。
+ */
+export function layoutScore(report: LayoutReport): number {
+  const thinDeficit = report.thinPages.reduce((sum, i) => sum + Math.max(0, MIN_FILL - (report.fills[i] ?? 0)), 0);
+  return (
+    report.overflowPages.length * 10 +
+    report.thinPages.length * 2 +
+    thinDeficit * 10 +
+    (report.exceedsPlatformLimit ? 8 : 0) +
+    (report.withinTarget ? 0 : 2) +
+    Math.abs(imageGap(report))
+  );
 }

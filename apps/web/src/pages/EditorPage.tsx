@@ -83,7 +83,7 @@ function Workspace({
   const index = useMemo(() => buildArticleIndex(article), [article]);
   const { images } = index;
   const layout = useDeckLayout(editor.deck, index);
-  const agent = useAgent(editor.deck, editor.updateDeck, layout);
+  const agent = useAgent(editor.deck, editor.updateDeck, layout, index);
 
   useEffect(() => {
     if (!autostart || editor.deck.blocks.length > 0) return;

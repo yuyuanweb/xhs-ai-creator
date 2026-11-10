@@ -13,6 +13,7 @@ import { ArticlesService } from '../articles/articles.service';
 import { DecksService } from '../decks/decks.service';
 import { PromptsService } from '../prompts/prompts.service';
 import { LlmService } from './llm.service';
+import { AGENT_TOOLS } from './tools';
 import { renderArticleContext } from './article-context';
 import { DraftBlocks, mergeChapters, type RawBlock } from './draft-blocks';
 import { CONTENT_TYPES, DRAFT_OUTPUT_SPEC, gapBrief, normalizeDraft, type RawDraft } from './draft-spec';
@@ -38,7 +39,7 @@ export class AgentService {
     this.logger.log(`开始生成初稿 deck=${deckId} 字数=${article.markdown.length}`);
 
     const conversation: AgentMessage[] = [
-      { role: 'system', content: await this.systemPrompt() },
+      { role: 'system', content: await this.systemPrompt('draft') },
       { role: 'user', content: `${renderArticleContext(article)}\n\n${DRAFT_OUTPUT_SPEC}` },
     ];
     const res = await this.llm.chat(conversation, { model, jsonMode: true });
@@ -66,6 +67,23 @@ export class AgentService {
     }
   }
 
+  /**
+   * 迭代一步。后端每次重建系统提示词和原文上下文，
+   * 前端只需要回传对话轮次，省掉每步都把整篇文章推上网络。
+   */
+  async step(deckId: string, userId: string, messages: AgentMessage[], model?: string): Promise<AgentStepResponse> {
+    const { article } = await this.load(deckId, userId);
+
+    return this.llm.chat(
+      [
+        { role: 'system', content: await this.systemPrompt('revise') },
+        { role: 'user', content: renderArticleContext(article) },
+        ...messages,
+      ],
+      { model, tools: AGENT_TOOLS, temperature: 0.4 },
+    );
+  }
+
   private async load(deckId: string, userId: string) {
     const deck = await this.decks.get(deckId, userId);
     const article = await this.articles.get(deck.articleId, userId);
@@ -73,11 +91,11 @@ export class AgentService {
   }
 
   /** 写作规则全集：写作风格、封面规则、平台硬约束和各内容类型的张数 */
-  async systemPrompt(): Promise<string> {
+  async systemPrompt(stage: 'draft' | 'revise'): Promise<string> {
     const [style, cover, main] = await Promise.all([
       this.prompts.get('style'),
       this.prompts.get('cover'),
-      this.prompts.get('draft'),
+      this.prompts.get(stage),
     ]);
 
     return [
