@@ -3,7 +3,7 @@ import type { Deck } from '@rcs/shared';
 /** 能撤销的那几项。id、时间戳跟着当前稿走，不进历史 */
 export type DeckSnapshot = Pick<
   Deck,
-  'contentType' | 'blocks' | 'cover' | 'settings' | 'disabledBlockIds' | 'overlays' | 'status'
+  'contentType' | 'blocks' | 'cover' | 'settings' | 'disabledBlockIds' | 'overlays' | 'aiSnapshot' | 'status'
 >;
 
 export const MAX_HISTORY = 80;
@@ -18,6 +18,7 @@ export function snapshotOf(deck: Deck): DeckSnapshot {
     settings: deck.settings,
     disabledBlockIds: deck.disabledBlockIds,
     overlays: deck.overlays,
+    aiSnapshot: deck.aiSnapshot,
     status: deck.status,
   };
 }
@@ -34,7 +35,8 @@ export function sameSnapshot(a: DeckSnapshot, b: DeckSnapshot): boolean {
     a.cover === b.cover &&
     a.settings === b.settings &&
     a.disabledBlockIds === b.disabledBlockIds &&
-    a.overlays === b.overlays
+    a.overlays === b.overlays &&
+    a.aiSnapshot === b.aiSnapshot
   );
 }
 

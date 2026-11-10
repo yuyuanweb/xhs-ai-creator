@@ -74,6 +74,7 @@ export function useDeckEditor(initial: Deck): DeckEditor {
           settings: next.settings,
           disabledBlockIds: next.disabledBlockIds,
           overlays: next.overlays,
+          aiSnapshot: next.aiSnapshot ?? null,
           status: next.status,
         })
         // 落盘期间又改了的话，状态已经被新的一轮置成 pending，不能被这一轮的结果盖掉

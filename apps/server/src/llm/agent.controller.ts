@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { IsArray, IsObject, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsInt, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import type { AgentMessage, BlockPatch } from '@rcs/shared';
 import { AgentService } from './agent.service';
 import { ExternalDraftService } from './external-draft.service';
@@ -37,6 +38,38 @@ class SupplementDto {
 class ReviseDto {
   @IsArray()
   patches: BlockPatch[];
+}
+
+class RewritePageDto {
+  @IsInt()
+  index!: number;
+
+  @IsBoolean()
+  isCover!: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  blockIds!: string[];
+}
+
+class RewritePagesDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RewritePageDto)
+  pages!: RewritePageDto[];
+
+  @IsOptional()
+  @IsString()
+  model?: string;
+}
+
+class RewriteBlockDto {
+  @IsString()
+  blockId!: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }
 
 @Controller('agent')
@@ -80,5 +113,15 @@ export class AgentController {
   @Post('decks/:deckId/revise')
   revise(@CurrentUser() user: AuthUser, @Param('deckId') deckId: string, @Body() dto: ReviseDto) {
     return this.external.revise(deckId, user.id, dto.patches);
+  }
+
+  @Post('decks/:deckId/rewrite-pages')
+  rewritePages(@CurrentUser() user: AuthUser, @Param('deckId') deckId: string, @Body() dto: RewritePagesDto) {
+    return this.agent.rewritePages(deckId, user.id, dto.pages, dto.model);
+  }
+
+  @Post('decks/:deckId/rewrite-block')
+  rewriteBlock(@CurrentUser() user: AuthUser, @Param('deckId') deckId: string, @Body() dto: RewriteBlockDto) {
+    return this.agent.rewriteBlock(deckId, user.id, dto.blockId, dto.model);
   }
 }

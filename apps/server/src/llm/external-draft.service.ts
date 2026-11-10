@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  adoptAiEdits,
   applyDraft,
   applyPatches,
   buildArticleIndex,
@@ -62,7 +63,7 @@ export class ExternalDraftService {
   async importDraft(deckId: string, userId: string, raw: RawDraft): Promise<DraftImportResult> {
     const { deck, article } = await this.load(deckId, userId);
     const drafter = new DraftBlocks(article, sourceUnits(article.blocks));
-    const { contentType, blocks, cover, settings, disabledBlockIds, overlays, status } = applyDraft(
+    const { contentType, blocks, cover, settings, disabledBlockIds, overlays, aiSnapshot, status } = applyDraft(
       deck,
       normalizeDraft(raw, article, drafter),
     );
@@ -73,6 +74,7 @@ export class ExternalDraftService {
       settings,
       disabledBlockIds,
       overlays,
+      aiSnapshot,
       status,
     });
     this.layouts.markExternalChange(deckId);
@@ -90,6 +92,7 @@ export class ExternalDraftService {
     const blocks = mergeChapters(deck.blocks, extra, units);
     const saved = await this.decks.update(deckId, userId, {
       blocks,
+      aiSnapshot: adoptAiEdits(deck.aiSnapshot, deck.blocks, blocks),
       status: 'ready',
     });
     this.layouts.markExternalChange(deckId);
@@ -121,7 +124,10 @@ export class ExternalDraftService {
     const { deck, article } = await this.load(deckId, userId);
     const { blocks, applied, skipped } = applyPatches(deck.blocks, patches, buildArticleIndex(article));
     if (applied) {
-      await this.decks.update(deckId, userId, { blocks });
+      await this.decks.update(deckId, userId, {
+        blocks,
+        aiSnapshot: adoptAiEdits(deck.aiSnapshot, deck.blocks, blocks),
+      });
       this.layouts.markExternalChange(deckId);
     }
     return { deckId, editorUrl: this.editorUrl(deckId), applied, skipped };

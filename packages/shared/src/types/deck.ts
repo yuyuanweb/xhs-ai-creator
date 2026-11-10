@@ -59,6 +59,8 @@ export interface CardBlock {
   /** 只给 h2 用：这一页讲的是原文哪几节（SourceUnit.id），用来对账有没有漏讲、截图有没有串节 */
   sources?: string[];
   breakHint?: BreakHint;
+  /** 给 AI 的批注，不印在卡片上。重新生成这一块或这一页时会带上 */
+  note?: string;
 }
 
 /**
@@ -118,6 +120,12 @@ export interface PageOverlay {
   rotate?: number;
 }
 
+/** 上一份 AI 交稿，用来判断哪些页被人工改过 */
+export interface AiSnapshot {
+  cover: CoverSpec;
+  blocks: CardBlock[];
+}
+
 /** 内容类型决定目标张数：教程需要保留操作截图，压不到观点文那么短 */
 export type ContentType = 'opinion' | 'tutorial' | 'listicle' | 'review';
 
@@ -158,6 +166,8 @@ export interface Deck {
   disabledBlockIds: string[];
   /** 浮在各页上的图标、表情、上传图，不占版面 */
   overlays: PageOverlay[];
+  /** 最近一次 AI 交稿。没有这份快照时，重新生成不判断人工改动 */
+  aiSnapshot?: AiSnapshot;
   status: DeckStatus;
   createdAt: string;
   updatedAt: string;

@@ -165,6 +165,25 @@ export interface FinishArgs {
   summary: string;
 }
 
+export interface RewritePageInput {
+  index: number;
+  isCover: boolean;
+  blockIds: string[];
+}
+
+export interface RewritePageGroup {
+  removeIds: string[];
+  insert: CardBlock[];
+}
+
+export interface RewritePagesResult {
+  cover?: CoverSpec;
+  groups: RewritePageGroup[];
+  overlays: PageOverlay[];
+  replacedIds: string[];
+  coverReplaced: boolean;
+}
+
 /** 与具体模型厂商解耦的消息格式，后端负责翻译成各家协议 */
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';

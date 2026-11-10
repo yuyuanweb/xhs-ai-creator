@@ -759,6 +759,10 @@ a {
   gap: 8px;
 }
 
+.dlg-acts .is-push {
+  margin-right: auto;
+}
+
 /* ---------- 轻提示 ---------- */
 
 .toaster {

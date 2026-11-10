@@ -1,4 +1,4 @@
-import type { CardBlock, OverlayKind, PageOverlay } from './types/deck.js';
+import type { AiSnapshot, CardBlock, CoverSpec, Deck, OverlayKind, PageOverlay } from './types/deck.js';
 import type { LayoutPage } from './types/layout.js';
 
 const MAX_OVERLAYS = 24;
@@ -104,6 +104,13 @@ export function upgradeOverlays(raw: unknown): PageOverlay[] {
   return raw.filter((o): o is PageOverlay => Boolean(o && typeof o === 'object' && typeof (o as PageOverlay).id === 'string'));
 }
 
+export function upgradeAiSnapshot(raw: unknown): AiSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const snap = raw as AiSnapshot;
+  if (!snap.cover || !Array.isArray(snap.blocks)) return undefined;
+  return snap;
+}
+
 export function overlaysOnPage(overlays: PageOverlay[], pageIndex: number, pages: LayoutPage[]): PageOverlay[] {
   if (pageIndex === 0) return overlays.filter((o) => o.anchor === 'cover');
   const ids = new Set(pages[pageIndex - 1]?.blockIds ?? []);
@@ -115,12 +122,119 @@ export function pruneOverlays(overlays: PageOverlay[], blocks: CardBlock[]): Pag
   return overlays.filter((o) => o.anchor === 'cover' || ids.has(o.anchor));
 }
 
+/** 封面是 0，内容页从 1 起，和编辑台页码一致 */
+export function dirtyPageIndexes(deck: Pick<Deck, 'cover' | 'blocks' | 'aiSnapshot'>, pages: LayoutPage[]): number[] {
+  const snap = deck.aiSnapshot;
+  if (!snap) return [];
+  const dirty: number[] = [];
+  if (coverFingerprint(deck.cover) !== coverFingerprint(snap.cover)) dirty.push(0);
+  const prev = new Map(snap.blocks.map((b) => [b.id, b]));
+  pages.forEach((page, i) => {
+    const touched = page.blockIds.some((id) => {
+      const cur = deck.blocks.find((b) => b.id === id);
+      if (!cur) return false;
+      if (cur.note?.trim()) return true;
+      const old = prev.get(id);
+      return !old || blockFingerprint(cur) !== blockFingerprint(old);
+    });
+    if (touched) dirty.push(i + 1);
+  });
+  return dirty;
+}
+
+export function takeAiSnapshot(cover: CoverSpec, blocks: CardBlock[]): AiSnapshot {
+  return { cover, blocks };
+}
+
+/**
+ * AI 修版、补章节之后，只把这一轮真改过的块写进快照。
+ * 没动过的块保持原样，上面的人工修改仍然算人工改动。
+ */
+export function adoptAiEdits(prev: AiSnapshot | undefined, before: CardBlock[], after: CardBlock[]): AiSnapshot {
+  const cover = prev?.cover ?? { title: '', variant: 'poster' };
+  if (!prev) return takeAiSnapshot(cover, after);
+
+  const beforeById = new Map(before.map((b) => [b.id, b]));
+  const afterIds = new Set(after.map((b) => b.id));
+  const replaced: string[] = [];
+  const adopted: CardBlock[] = [];
+  for (const block of after) {
+    const old = beforeById.get(block.id);
+    if (!old || blockFingerprint(block) !== blockFingerprint(old)) {
+      replaced.push(block.id);
+      adopted.push(block);
+    }
+  }
+  for (const block of before) {
+    if (!afterIds.has(block.id)) replaced.push(block.id);
+  }
+  if (!replaced.length) return prev;
+  return mergeAiSnapshot(prev, { blocks: adopted }, replaced, false);
+}
+
+/** AI 改了封面文案时，封面也换成这一版，避免重新生成时把封面标成人工改过 */
+export function adoptAiCover(prev: AiSnapshot | undefined, cover: CoverSpec, blocks: CardBlock[]): AiSnapshot {
+  if (!prev) return takeAiSnapshot(cover, blocks);
+  if (coverFingerprint(cover) === coverFingerprint(prev.cover)) return prev;
+  return { ...prev, cover };
+}
+
+/** 只把这一次 AI 改过的封面 / 块写进快照，没动的页仍按上一份算人工改动 */
+export function mergeAiSnapshot(
+  prev: AiSnapshot | undefined,
+  next: { cover?: CoverSpec; blocks: CardBlock[] },
+  replacedIds: Iterable<string>,
+  coverReplaced: boolean,
+): AiSnapshot {
+  const drop = new Set(replacedIds);
+  const kept = (prev?.blocks ?? []).filter((b) => !drop.has(b.id));
+  return {
+    cover: coverReplaced && next.cover ? next.cover : (prev?.cover ?? next.cover ?? { title: '', variant: 'poster' }),
+    blocks: [...kept, ...next.blocks],
+  };
+}
+
+export function replacePageBlocks(
+  blocks: CardBlock[],
+  groups: Array<{ removeIds: string[]; insert: CardBlock[] }>,
+): CardBlock[] {
+  if (!groups.length) return blocks;
+  const insertAt = new Map<string, CardBlock[]>();
+  const drop = new Set<string>();
+  for (const g of groups) {
+    if (!g.removeIds.length) continue;
+    g.removeIds.forEach((id) => drop.add(id));
+    insertAt.set(g.removeIds[0]!, g.insert);
+  }
+  const out: CardBlock[] = [];
+  for (const b of blocks) {
+    const extra = insertAt.get(b.id);
+    if (extra) {
+      out.push(...extra);
+      insertAt.delete(b.id);
+      continue;
+    }
+    if (!drop.has(b.id)) out.push(b);
+  }
+  for (const extra of insertAt.values()) out.push(...extra);
+  return out;
+}
+
 function resolveAnchor(at: unknown, blocks: CardBlock[]): string | undefined {
   if (typeof at !== 'string' || !at.trim()) return undefined;
   if (at === 'cover') return 'cover';
   if (blocks.some((b) => b.id === at)) return at;
   const h2 = blocks.find((b) => b.kind === 'h2' && b.sources?.includes(at));
   return h2?.id;
+}
+
+function blockFingerprint(b: CardBlock): string {
+  const { note: _note, ...rest } = b;
+  return JSON.stringify(rest);
+}
+
+function coverFingerprint(c: CoverSpec): string {
+  return JSON.stringify(c);
 }
 
 function clampPct(n: unknown, fallback: number): number {

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   MAX_AGENT_ROUNDS,
+  adoptAiCover,
+  adoptAiEdits,
   applyDraft,
   applyPatches,
   clampSettings,
+  takeAiSnapshot,
   type AgentRunState,
   type ArticleIndex,
   type CoverSpec,
@@ -97,7 +100,7 @@ export function useAgent(
         },
         restore: (cp: DeckCheckpoint) => {
           dirtyRef.current = true;
-          updateDeck((prev) => ({ ...prev, ...cp }), { history: false });
+          updateDeck((prev) => ({ ...prev, ...cp, aiSnapshot: takeAiSnapshot(cp.cover, cp.blocks) }), { history: false });
         },
         applyPatches: (args: ReviseBlocksArgs) => {
           dirtyRef.current = true;
@@ -105,12 +108,15 @@ export function useAgent(
           updateDeck((prev) => {
             const res = applyPatches(prev.blocks, args.patches ?? [], sourceRef.current);
             outcome = { applied: res.applied, skipped: res.skipped };
-            return { ...prev, blocks: res.blocks };
+            return { ...prev, blocks: res.blocks, aiSnapshot: adoptAiEdits(prev.aiSnapshot, prev.blocks, res.blocks) };
           }, { history: false });
           return outcome;
         },
         applyCover: (cover: Partial<CoverSpec>) => {
-          updateDeck((prev) => ({ ...prev, cover: { ...prev.cover, ...cover } }), { history: false });
+          updateDeck((prev) => {
+            const next = { ...prev.cover, ...cover };
+            return { ...prev, cover: next, aiSnapshot: adoptAiCover(prev.aiSnapshot, next, prev.blocks) };
+          }, { history: false });
         },
         applySettings: (settings: Partial<DeckSettings>) => {
           dirtyRef.current = true;

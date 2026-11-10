@@ -3,6 +3,7 @@ import type { Deck, DeckSettings } from './types/deck.js';
 import { TARGET_CARDS } from './constants/platform.js';
 import { upgradeCover } from './defaults.js';
 import { findAccent, findTheme } from './themes.js';
+import { takeAiSnapshot } from './overlays.js';
 
 /**
  * 把一份初稿落到卡片稿上。编辑器里的 AI 和外部 Agent（Cursor 里的模型）交来的初稿都走这一处，
@@ -20,6 +21,7 @@ export function applyDraft(deck: Deck, proposal: DraftProposal): Deck {
     cover,
     disabledBlockIds: [],
     overlays: proposal.overlays ?? [],
+    aiSnapshot: takeAiSnapshot(cover, proposal.blocks),
     settings: clampSettings({
       ...deck.settings,
       themeId: theme.id,

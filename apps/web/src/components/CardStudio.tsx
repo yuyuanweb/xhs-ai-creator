@@ -4,18 +4,22 @@ import {
   PAGE_H,
   PAGE_W,
   defaultOverlay,
+  dirtyPageIndexes,
   isUploadImage,
+  mergeAiSnapshot,
   overlaysOnPage,
   pruneOverlays,
+  replacePageBlocks,
   type BreakHint,
   type CardBlock,
   type Deck,
   type OverlayKind,
   type PageOverlay,
+  type RewritePagesResult,
   type SourceArticle,
   type SourceImage,
 } from '@rcs/shared';
-import { articleApi } from '../api/endpoints';
+import { articleApi, agentApi } from '../api/endpoints';
 import type { UseAgentResult } from '../agent/useAgent';
 import type { DeckHistory, SaveState, UpdateDeck } from '../editor/useDeckEditor';
 import type { DeckLayout } from '../layout/useDeckLayout';
@@ -24,17 +28,19 @@ import { buildSlots, CardStrip } from '../render/DeckCards';
 import { ContentCard } from '../render/ContentCard';
 import { CoverCard } from '../render/CoverCard';
 import type { LiveEdit } from '../render/live-edit';
-import { confirmDialog } from '../ui/feedback';
+import { confirmDialog, errorText, toast } from '../ui/feedback';
 import { Icon, type IconName } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
 import { ExportBar } from './ExportBar';
 import { AgentLock, AgentStatus } from './studio/AgentStatus';
+import { BlockMenu } from './studio/BlockMenu';
 import { DeckOverview } from './studio/DeckOverview';
 import { PageTag, pageLabel } from './studio/PageTag';
 import { PageRail } from './studio/PageRail';
 import { PreviewDialog } from './studio/PreviewDialog';
 import { SaveStatus } from './studio/SaveStatus';
 import { Inspector, type InspectorTab, type PageContext } from './studio/Inspector';
+import { RegenDialog } from './studio/RegenDialog';
 
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 1;
@@ -81,6 +87,8 @@ export function CardStudio({
   const [index, setIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<InspectorTab>('page');
+  const [regenOpen, setRegenOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [overlayId, setOverlayId] = useState<string | null>(null);
   const [view, setView] = useState<'canvas' | 'grid'>('canvas');
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -203,7 +211,7 @@ export function CardStudio({
 
   const live = useMemo<LiveEdit>(
     () => ({
-      disabled: agent.running,
+      disabled: agent.running || busy,
       selectedId,
       onSelect: (id) => {
         setSelectedId(id);
@@ -218,12 +226,12 @@ export function CardStudio({
     }),
     // patchBlock closes over updateDeck; selectedId must refresh the highlight
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agent.running, selectedId, updateDeck],
+    [agent.running, busy, selectedId, updateDeck],
   );
 
   const overlayLive = useMemo(
     () => ({
-      disabled: agent.running,
+      disabled: agent.running || busy,
       selectedId: overlayId,
       onSelect: (id: string | null) => {
         setOverlayId(id);
@@ -236,7 +244,7 @@ export function CardStudio({
         updateDeck((prev) => ({ ...prev, overlays: (prev.overlays ?? []).filter((o) => o.id !== id) }));
       },
     }),
-    [agent.running, overlayId, updateDeck],
+    [agent.running, busy, overlayId, updateDeck],
   );
 
   const patchBlock = (id: string, patch: Partial<CardBlock>) => {
@@ -273,6 +281,19 @@ export function CardStudio({
       ...prev,
       disabledBlockIds: off ? [...prev.disabledBlockIds, id] : prev.disabledBlockIds.filter((x) => x !== id),
     }));
+  };
+
+  const removeBlock = (id: string) => {
+    setSelectedId(null);
+    updateDeck((prev) => {
+      const blocks = prev.blocks.filter((b) => b.id !== id);
+      return {
+        ...prev,
+        blocks,
+        overlays: pruneOverlays(prev.overlays ?? [], blocks),
+        disabledBlockIds: prev.disabledBlockIds.filter((x) => x !== id),
+      };
+    });
   };
 
   const deletePage = async () => {
@@ -351,6 +372,42 @@ export function CardStudio({
     setOverlayId(next.id);
   };
 
+  const rewriteBlock = async (id: string) => {
+    setBusy(true);
+    try {
+      const next = await agentApi.rewriteBlock(deck.id, id);
+      updateDeck((prev) => ({
+        ...prev,
+        blocks: prev.blocks.map((b) => (b.id === id ? next : b)),
+        aiSnapshot: mergeAiSnapshot(prev.aiSnapshot, { cover: prev.cover, blocks: [next] }, [id], false),
+      }));
+      toast.success('这一块已重新生成');
+    } catch (err) {
+      toast.error(errorText(err, '重新生成失败'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rewritePages = async (indexes: number[]) => {
+    setBusy(true);
+    setRegenOpen(false);
+    try {
+      const pages = indexes.map((i) => ({
+        index: i,
+        isCover: i === 0,
+        blockIds: i === 0 ? [] : (layout.pages[i - 1]?.blockIds ?? []),
+      }));
+      const result = await agentApi.rewritePages(deck.id, pages);
+      updateDeck((prev) => applyRewrite(prev, result));
+      toast.success(`已重新生成 ${indexes.length} 页`);
+    } catch (err) {
+      toast.error(errorText(err, '重新生成失败'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const page = index > 0 && index <= layout.pages.length ? layout.pages[index - 1] : undefined;
   const isCover = index === 0;
   const selectedPos = page?.blockIds.indexOf(selectedId ?? '') ?? -1;
@@ -387,9 +444,18 @@ export function CardStudio({
     if (best !== index) setIndex(best);
   };
 
+  const dirty = useMemo(
+    () => dirtyPageIndexes(deck, layout.pages),
+    [deck, layout.pages],
+  );
+
   const regenerate = async () => {
     if (!deck.blocks.length) {
       agent.start();
+      return;
+    }
+    if (dirty.length) {
+      setRegenOpen(true);
       return;
     }
     const ok = await confirmDialog({
@@ -444,10 +510,10 @@ export function CardStudio({
               <Icon name="redo" />
             </button>
           </div>
-          {agent.running ? (
-            <button className="sb" onClick={agent.stop}>
-              <Icon name="stop" />
-              停止
+          {agent.running || busy ? (
+            <button className="sb" onClick={agent.running ? agent.stop : undefined} disabled={busy && !agent.running}>
+              {busy && !agent.running ? <Spinner size={14} /> : <Icon name="stop" />}
+              {busy && !agent.running ? '生成中…' : '停止'}
             </button>
           ) : (
             <button
@@ -499,7 +565,7 @@ export function CardStudio({
           tab={tab}
           deck={deck}
           updateDeck={updateDeck}
-          disabled={agent.running}
+          disabled={agent.running || busy}
           page={pageContext}
           images={article.images.filter((img) => img.url)}
           layoutBlocks={layout.blockMap}
@@ -523,7 +589,7 @@ export function CardStudio({
           }}
         />
 
-        <div className={`st-view${agent.running ? ' is-locked' : ''}`}>
+        <div className={`st-view${agent.running || busy ? ' is-locked' : ''}`}>
           <div className="st-stage">
             <AgentLock agent={agent} />
             <div
@@ -531,7 +597,7 @@ export function CardStudio({
               ref={stageRef}
               onScroll={onCanvasScroll}
               onClick={(e) => {
-                if ((e.target as HTMLElement).closest('.card')) return;
+                if ((e.target as HTMLElement).closest('.card, .blk-menu')) return;
                 setSelectedId(null);
                 setOverlayId(null);
               }}
@@ -674,6 +740,37 @@ export function CardStudio({
         <CardStrip slots={slots} />
       </div>
 
+      {selectedId && !agent.running && !busy ? (
+        <BlockMenu
+          targetId={selectedId}
+          note={layout.blockMap.get(selectedId)?.note}
+          disabled={false}
+          onNote={(note) => patchBlock(selectedId, { note: note || undefined })}
+          onRewrite={() => void rewriteBlock(selectedId)}
+          onRemove={() => removeBlock(selectedId)}
+        />
+      ) : null}
+
+      {regenOpen ? (
+        <RegenDialog
+          dirty={dirty}
+          pages={Array.from({ length: total }, (_, i) => ({
+            index: i,
+            label: pageLabel(i),
+            dirty: dirty.includes(i),
+          }))}
+          onCancel={() => setRegenOpen(false)}
+          onConfirm={(scope) => {
+            if (scope === 'all') {
+              setRegenOpen(false);
+              agent.start();
+              return;
+            }
+            void rewritePages(scope);
+          }}
+        />
+      ) : null}
+
       {previewOpen ? (
         <PreviewDialog deck={deck} images={images} layout={layout} total={total} onClose={() => setPreviewOpen(false)} />
       ) : null}
@@ -699,6 +796,25 @@ function clampZoom(n: number): number {
 
 function clampPct(n: number): number {
   return Math.min(98, Math.max(2, n));
+}
+
+function applyRewrite(deck: Deck, result: RewritePagesResult): Deck {
+  const blocks = replacePageBlocks(deck.blocks, result.groups);
+  const drop = new Set(result.replacedIds);
+  const kept = (deck.overlays ?? []).filter((o) => (o.anchor === 'cover' ? !result.coverReplaced : !drop.has(o.anchor)));
+  const inserted = result.groups.flatMap((g) => g.insert);
+  return {
+    ...deck,
+    blocks,
+    cover: result.cover ?? deck.cover,
+    overlays: pruneOverlays([...kept, ...result.overlays], blocks),
+    aiSnapshot: mergeAiSnapshot(
+      deck.aiSnapshot,
+      { cover: result.cover ?? deck.cover, blocks: inserted },
+      result.replacedIds,
+      result.coverReplaced,
+    ),
+  };
 }
 
 function scrollCanvasTo(root: HTMLElement, i: number, behavior: ScrollBehavior) {

@@ -47,6 +47,8 @@ model Deck {
   disabledBlockIds Json
   /// PageOverlay[]
   overlays         Json     @default("[]")
+  /// AiSnapshot，最近一次 AI 交稿
+  aiSnapshot       Json?
   status           String   @default("draft")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

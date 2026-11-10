@@ -2,10 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   defaultCover,
   defaultDeckSettings,
+  upgradeAiSnapshot,
   upgradeBlocks,
   upgradeCover,
   upgradeOverlays,
   upgradeSettings,
+  type AiSnapshot,
   type CardBlock,
   type ContentType,
   type CoverSpec,
@@ -26,6 +28,7 @@ export interface DeckPatch {
   settings?: DeckSettings;
   disabledBlockIds?: string[];
   overlays?: PageOverlay[];
+  aiSnapshot?: AiSnapshot | null;
   status?: DeckStatus;
 }
 
@@ -127,6 +130,7 @@ export class DecksService {
           disabledBlockIds: patch.disabledBlockIds as unknown as object,
         }),
         ...(patch.overlays !== undefined && { overlays: patch.overlays as unknown as object }),
+        ...(patch.aiSnapshot !== undefined && { aiSnapshot: patch.aiSnapshot as unknown as object }),
         ...(patch.status !== undefined && { status: patch.status }),
       },
     });
@@ -181,6 +185,7 @@ type DeckRow = {
   settings: unknown;
   disabledBlockIds: unknown;
   overlays?: unknown;
+  aiSnapshot?: unknown;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -197,6 +202,7 @@ function toDeck(row: DeckRow): Deck {
     settings,
     disabledBlockIds: row.disabledBlockIds as string[],
     overlays: upgradeOverlays(row.overlays),
+    aiSnapshot: upgradeAiSnapshot(row.aiSnapshot),
     status: row.status as DeckStatus,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

@@ -11,7 +11,10 @@ import type {
   CardBlock,
   ContentType,
   CoverSpec,
+  AiSnapshot,
   PageOverlay,
+  RewritePageInput,
+  RewritePagesResult,
 } from '@rcs/shared';
 import { api } from './client';
 
@@ -83,6 +86,7 @@ export interface DeckPatch {
   settings?: DeckSettings;
   disabledBlockIds?: string[];
   overlays?: PageOverlay[];
+  aiSnapshot?: AiSnapshot | null;
   status?: Deck['status'];
 }
 
@@ -102,6 +106,10 @@ export const agentApi = {
     api.post<DraftProposal>(`/agent/decks/${deckId}/draft`, { model }, { signal }),
   step: (deckId: string, messages: AgentMessage[], model?: string, signal?: AbortSignal) =>
     api.post<AgentStepResponse>(`/agent/decks/${deckId}/step`, { messages, model }, { signal }),
+  rewritePages: (deckId: string, pages: RewritePageInput[], model?: string, signal?: AbortSignal) =>
+    api.post<RewritePagesResult>(`/agent/decks/${deckId}/rewrite-pages`, { pages, model }, { signal }),
+  rewriteBlock: (deckId: string, blockId: string, model?: string, signal?: AbortSignal) =>
+    api.post<CardBlock>(`/agent/decks/${deckId}/rewrite-block`, { blockId, model }, { signal }),
 };
 
 export const libraryApi = {
