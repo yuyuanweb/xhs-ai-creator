@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import imageSize from 'image-size';
 import { StorageService } from './storage.service';
@@ -57,4 +57,13 @@ export class ImageFetcherService {
     }
   }
 
+  async saveUpload(buf: Buffer, mime: string): Promise<FetchedImage> {
+    const ext = EXT_BY_MIME[mime] ?? 'jpg';
+    if (!EXT_BY_MIME[mime]) throw new BadRequestException('只支持 PNG、JPEG、GIF、WebP、AVIF');
+    const dim = imageSize(buf);
+    if (!dim.width || !dim.height) throw new BadRequestException('无法识别图片尺寸');
+    const key = `images/${createHash('sha1').update(buf).digest('hex')}.${ext}`;
+    if (!(await this.storage.exists(key))) await this.storage.save(key, buf);
+    return { url: this.storage.urlOf(key), width: dim.width, height: dim.height };
+  }
 }

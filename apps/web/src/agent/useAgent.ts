@@ -97,7 +97,7 @@ export function useAgent(
         },
         restore: (cp: DeckCheckpoint) => {
           dirtyRef.current = true;
-          updateDeck((prev) => ({ ...prev, ...cp }));
+          updateDeck((prev) => ({ ...prev, ...cp }), { history: false });
         },
         applyPatches: (args: ReviseBlocksArgs) => {
           dirtyRef.current = true;
@@ -106,15 +106,17 @@ export function useAgent(
             const res = applyPatches(prev.blocks, args.patches ?? [], sourceRef.current);
             outcome = { applied: res.applied, skipped: res.skipped };
             return { ...prev, blocks: res.blocks };
-          });
+          }, { history: false });
           return outcome;
         },
         applyCover: (cover: Partial<CoverSpec>) => {
-          updateDeck((prev) => ({ ...prev, cover: { ...prev.cover, ...cover } }));
+          updateDeck((prev) => ({ ...prev, cover: { ...prev.cover, ...cover } }), { history: false });
         },
         applySettings: (settings: Partial<DeckSettings>) => {
           dirtyRef.current = true;
-          updateDeck((prev) => ({ ...prev, settings: clampSettings({ ...prev.settings, ...settings }) }));
+          updateDeck((prev) => ({ ...prev, settings: clampSettings({ ...prev.settings, ...settings }) }), {
+            history: false,
+          });
         },
         measure,
         onState: setState,

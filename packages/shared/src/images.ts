@@ -6,11 +6,24 @@ const SHOT_MIN_SIDE = 480;
 /** 图注比这长基本都是模型在描述它看不到的画面 */
 const CAPTION_MAX = 40;
 
+/** 不是原文里的图时，origin 只是个来源记号，不是能重新抓取的地址 */
+const UPLOAD_PREFIX = 'upload:';
+
+export function uploadOrigin(fileName: string): string {
+  return `${UPLOAD_PREFIX}${fileName || 'image'}`;
+}
+
+/** 在编辑台里自己上传的图 */
+export function isUploadImage(img: SourceImage): boolean {
+  return img.origin.startsWith(UPLOAD_PREFIX);
+}
+
 /**
  * 能上卡片的原文配图：抓取成功且不是小图。尺寸没量到的不拦。
+ * 上传图不是原文的证据，不能交给模型当截图用
  */
 export function isShot(img: SourceImage | undefined): img is SourceImage {
-  if (!img?.url) return false;
+  if (!img?.url || isUploadImage(img)) return false;
   if (!img.width || !img.height) return true;
   return Math.max(img.width, img.height) >= SHOT_MIN_SIDE;
 }

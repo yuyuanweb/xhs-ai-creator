@@ -1,23 +1,40 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { PAGE_H, PAGE_W, overlaysOnPage, type Deck, type SourceArticle, type SourceImage } from '@rcs/shared';
+import {
+  PAGE_H,
+  PAGE_W,
+  defaultOverlay,
+  isUploadImage,
+  overlaysOnPage,
+  pruneOverlays,
+  type BreakHint,
+  type CardBlock,
+  type Deck,
+  type OverlayKind,
+  type PageOverlay,
+  type SourceArticle,
+  type SourceImage,
+} from '@rcs/shared';
+import { articleApi } from '../api/endpoints';
 import type { UseAgentResult } from '../agent/useAgent';
-import type { SaveState, UpdateDeck } from '../editor/useDeckEditor';
+import type { DeckHistory, SaveState, UpdateDeck } from '../editor/useDeckEditor';
 import type { DeckLayout } from '../layout/useDeckLayout';
+import { plainText } from '../render/inline';
 import { buildSlots, CardStrip } from '../render/DeckCards';
 import { ContentCard } from '../render/ContentCard';
 import { CoverCard } from '../render/CoverCard';
+import type { LiveEdit } from '../render/live-edit';
 import { confirmDialog } from '../ui/feedback';
-import { Icon } from '../ui/icons';
+import { Icon, type IconName } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
 import { ExportBar } from './ExportBar';
-import { AgentLock, AgentLockNote, AgentStatus } from './studio/AgentStatus';
+import { AgentLock, AgentStatus } from './studio/AgentStatus';
 import { DeckOverview } from './studio/DeckOverview';
 import { PageTag, pageLabel } from './studio/PageTag';
 import { PageRail } from './studio/PageRail';
 import { PreviewDialog } from './studio/PreviewDialog';
 import { SaveStatus } from './studio/SaveStatus';
-import { SettingsPanel } from './SettingsPanel';
+import { Inspector, type InspectorTab, type PageContext } from './studio/Inspector';
 
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 1;
@@ -26,31 +43,45 @@ const ZOOM_STEP = 0.08;
 const CANVAS_PAD_X = 72;
 const CANVAS_PAD_Y = 116;
 
+const DOCK: Array<{ tab: InspectorTab; icon: IconName; label: string }> = [
+  { tab: 'page', icon: 'page', label: '本页' },
+  { tab: 'style', icon: 'style', label: '样式' },
+  { tab: 'stuff', icon: 'shapes', label: '素材' },
+];
+
 export function CardStudio({
   deck,
   article,
   images,
   layout,
   updateDeck,
+  history,
   save,
   agent,
   onRetryImages,
+  onArticleChange,
 }: {
   deck: Deck;
   article: SourceArticle;
   images: Map<string, SourceImage>;
   layout: DeckLayout;
   updateDeck: UpdateDeck;
+  history: DeckHistory;
   save: { state: SaveState; retry: () => void };
   agent: UseAgentResult;
   onRetryImages: () => Promise<void>;
+  onArticleChange: (article: SourceArticle) => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
+  const followRef = useRef<string | null>(null);
   const syncingRef = useRef(false);
   const [fit, setFit] = useState(0.48);
   const [zoom, setZoom] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<InspectorTab>('page');
+  const [overlayId, setOverlayId] = useState<string | null>(null);
   const [view, setView] = useState<'canvas' | 'grid'>('canvas');
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -79,8 +110,10 @@ export function CardStudio({
     return () => observer.disconnect();
   }, [ready]);
 
-  const goTo = (i: number, behavior: ScrollBehavior = 'smooth') => {
+  /** keepSelection：跟着编辑跳页时保留选中，否则在面板里连续调同一块会每点一下就丢一次选中 */
+  const goTo = (i: number, behavior: ScrollBehavior = 'smooth', keepSelection = false) => {
     const next = Math.max(0, Math.min(maxIndex, i));
+    if (!keepSelection) setSelectedId(null);
     setIndex(next);
     const root = stageRef.current;
     if (!root) return;
@@ -128,19 +161,212 @@ export function CardStudio({
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.closest('input, textarea, select')) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) history.redo();
+        else history.undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        history.redo();
+        return;
+      }
       if (e.key === 'ArrowRight') goTo(index + 1);
       if (e.key === 'ArrowLeft') goTo(index - 1);
+      if (e.key === 'Escape') {
+        setSelectedId(null);
+        setOverlayId(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [index, maxIndex]);
+  }, [index, maxIndex, history]);
+
+  useEffect(() => {
+    const id = followRef.current;
+    if (!id) return;
+    const pageIndex = layout.pages.findIndex((p) => p.blockIds.includes(id));
+    if (pageIndex >= 0) goTo(pageIndex + 1, 'instant', true);
+    followRef.current = null;
+  }, [layout.pages]);
+
+  // 选中一块内容时自动切到「本页」，省掉一次手动点击
+  useEffect(() => {
+    if (selectedId) setTab('page');
+  }, [selectedId]);
 
   const slots = useMemo(
     () => (layout.measured ? buildSlots(deck, layout.pages, layout.blockMap, images) : []),
     [deck, layout.measured, layout.pages, layout.blockMap, images],
   );
 
+  const live = useMemo<LiveEdit>(
+    () => ({
+      disabled: agent.running,
+      selectedId,
+      onSelect: (id) => {
+        setSelectedId(id);
+        setOverlayId(null);
+      },
+      onText: (id, text) => patchBlock(id, { text }),
+      onItems: (id, items) => patchBlock(id, { items }),
+      onCode: (id, code) => patchBlock(id, { code }),
+      onPatch: (id, patch) => patchBlock(id, patch),
+      onCover: (cover) => updateDeck((prev) => ({ ...prev, cover: { ...prev.cover, ...cover } })),
+      onSettings: (patch) => updateDeck((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } })),
+    }),
+    // patchBlock closes over updateDeck; selectedId must refresh the highlight
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [agent.running, selectedId, updateDeck],
+  );
+
+  const overlayLive = useMemo(
+    () => ({
+      disabled: agent.running,
+      selectedId: overlayId,
+      onSelect: (id: string | null) => {
+        setOverlayId(id);
+        if (id) setSelectedId(null);
+      },
+      onMove: (id: string, x: number, y: number) => patchOverlay(id, { x, y }),
+      onResize: (id: string, size: number) => patchOverlay(id, { size }),
+      onRemove: (id: string) => {
+        setOverlayId(null);
+        updateDeck((prev) => ({ ...prev, overlays: (prev.overlays ?? []).filter((o) => o.id !== id) }));
+      },
+    }),
+    [agent.running, overlayId, updateDeck],
+  );
+
+  const patchBlock = (id: string, patch: Partial<CardBlock>) => {
+    followRef.current = id;
+    updateDeck((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) => {
+        if (b.id !== id) return b;
+        const next = { ...b, ...patch };
+        // 章节名是模型写的短标签时保留；只有它原本就是照抄标题的，才跟着标题一起改
+        if (b.kind === 'h2' && patch.text !== undefined && b.section === plainText(b.text ?? '')) {
+          next.section = plainText(patch.text);
+        }
+        return next;
+      }),
+    }));
+  };
+
+  const setHint = (id: string, hint: BreakHint | null) => {
+    followRef.current = id;
+    updateDeck((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) => {
+        if (b.id !== id) return b;
+        const { breakHint: _drop, ...rest } = b;
+        return hint ? { ...rest, breakHint: hint } : rest;
+      }),
+    }));
+  };
+
+  const toggleOff = (id: string, off: boolean) => {
+    setSelectedId(null);
+    updateDeck((prev) => ({
+      ...prev,
+      disabledBlockIds: off ? [...prev.disabledBlockIds, id] : prev.disabledBlockIds.filter((x) => x !== id),
+    }));
+  };
+
+  const deletePage = async () => {
+    if (isCover || !page) return;
+    const ok = await confirmDialog({
+      title: `删除${pageContext.label}？`,
+      body: '这一页上的内容会从稿子里去掉，可以用撤销（⌘Z）找回。',
+      confirmText: '删除这一页',
+      danger: true,
+    });
+    if (!ok) return;
+    const ids = page.blockIds;
+    setSelectedId(null);
+    updateDeck((prev) => {
+      const blocks = prev.blocks.filter((b) => !ids.includes(b.id));
+      return {
+        ...prev,
+        blocks,
+        overlays: pruneOverlays(prev.overlays ?? [], blocks),
+        disabledBlockIds: prev.disabledBlockIds.filter((id) => !ids.includes(id)),
+      };
+    });
+  };
+
+  const addOverlay = (partial: { kind: OverlayKind; emoji?: string; icon?: string; imageId?: string }, at?: { x: number; y: number }) => {
+    const anchor = isCover ? 'cover' : page?.blockIds[0];
+    if (!anchor) return;
+    const next = defaultOverlay({ ...partial, anchor, ...(at ?? {}) });
+    updateDeck((prev) => ({ ...prev, overlays: [...(prev.overlays ?? []), next] }));
+    setOverlayId(next.id);
+  };
+
+  const patchOverlay = (id: string, patch: Partial<PageOverlay>) => {
+    updateDeck((prev) => ({
+      ...prev,
+      overlays: (prev.overlays ?? []).map((o) => (o.id === id ? { ...o, ...patch } : o)),
+    }));
+  };
+
+  const dropDecor = (e: DragEvent<HTMLDivElement>, pageIndex: number) => {
+    e.preventDefault();
+    const card = (e.currentTarget as HTMLElement).querySelector('.card');
+    if (!(card instanceof HTMLElement)) return;
+    const rect = card.getBoundingClientRect();
+    const at = {
+      x: clampPct(((e.clientX - rect.left) / rect.width) * 100),
+      y: clampPct(((e.clientY - rect.top) / rect.height) * 100),
+    };
+    const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
+    if (file) {
+      void articleApi.uploadImage(article.id, file).then((next) => {
+        onArticleChange(next);
+        const uploaded = next.images.filter(isUploadImage).at(-1);
+        if (uploaded) placeOverlay({ kind: 'image', imageId: uploaded.id }, pageIndex, at);
+      });
+      return;
+    }
+    const raw = e.dataTransfer.getData('application/x-rcs-decor') || e.dataTransfer.getData('text/plain');
+    if (!raw) return;
+    try {
+      placeOverlay(JSON.parse(raw) as { kind: OverlayKind; emoji?: string; icon?: string; imageId?: string }, pageIndex, at);
+    } catch {
+      /* 不是素材库拖过来的 */
+    }
+  };
+
+  const placeOverlay = (
+    payload: { kind: OverlayKind; emoji?: string; icon?: string; imageId?: string },
+    pageIndex: number,
+    at?: { x: number; y: number },
+  ) => {
+    const anchor = pageIndex === 0 ? 'cover' : layout.pages[pageIndex - 1]?.blockIds[0];
+    if (!anchor) return;
+    const next = defaultOverlay({ ...payload, anchor, ...(at ?? {}) });
+    updateDeck((prev) => ({ ...prev, overlays: [...(prev.overlays ?? []), next] }));
+    setOverlayId(next.id);
+  };
+
+  const page = index > 0 && index <= layout.pages.length ? layout.pages[index - 1] : undefined;
+  const isCover = index === 0;
+  const selectedPos = page?.blockIds.indexOf(selectedId ?? '') ?? -1;
   const missingImages = article.images.filter((img) => !img.url).length;
+
+  const pageContext: PageContext = {
+    index,
+    label: pageLabel(index),
+    blockIds: page?.blockIds ?? [],
+    ...(page?.section ? { section: page.section } : {}),
+    isCover,
+    selectedPos,
+    canJoin: selectedPos === 0 && index > 1,
+    ...(page ? { fill: page.fill, overflow: page.overflow } : {}),
+    ...(selectedId && layout.blockMap.get(selectedId) ? { selected: layout.blockMap.get(selectedId)! } : {}),
+  };
 
   const onCanvasScroll = () => {
     const root = stageRef.current;
@@ -210,6 +436,14 @@ export function CardStudio({
         <AgentStatus agent={agent} />
 
         <div className="st-acts">
+          <div className="st-hist">
+            <button type="button" className="sb is-icon" disabled={!history.canUndo} onClick={history.undo} title="撤销 ⌘Z">
+              <Icon name="undo" />
+            </button>
+            <button type="button" className="sb is-icon" disabled={!history.canRedo} onClick={history.redo} title="重做 ⌘⇧Z">
+              <Icon name="redo" />
+            </button>
+          </div>
           {agent.running ? (
             <button className="sb" onClick={agent.stop}>
               <Icon name="stop" />
@@ -246,16 +480,48 @@ export function CardStudio({
       ) : null}
 
       <div className="st-work">
-        <aside className="st-panel">
-          <header className="st-panel-head">
-            <h2>样式</h2>
-            <span>整份稿子共用的主题和版式</span>
-          </header>
-          <div className="st-panel-body">
-            {agent.running ? <AgentLockNote /> : null}
-            <SettingsPanel deck={deck} updateDeck={updateDeck} disabled={agent.running} />
-          </div>
-        </aside>
+        <nav className="st-dock" aria-label="面板">
+          {DOCK.map((d) => (
+            <button
+              key={d.tab}
+              type="button"
+              className={tab === d.tab ? 'is-on' : ''}
+              aria-pressed={tab === d.tab}
+              onClick={() => setTab(d.tab)}
+            >
+              <Icon name={d.icon} size={20} />
+              <span>{d.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <Inspector
+          tab={tab}
+          deck={deck}
+          updateDeck={updateDeck}
+          disabled={agent.running}
+          page={pageContext}
+          images={article.images.filter((img) => img.url)}
+          layoutBlocks={layout.blockMap}
+          actions={{
+            onSelect: (id) => {
+              setSelectedId(id);
+              setOverlayId(null);
+            },
+            onHint: setHint,
+            onToggleOff: toggleOff,
+            onCover: (patch) => updateDeck((prev) => ({ ...prev, cover: { ...prev.cover, ...patch } })),
+            onImage: (id, imageId) => patchBlock(id, { imageId }),
+            onPatch: patchBlock,
+            onDeletePage: deletePage,
+            onAddOverlay: addOverlay,
+            onUpload: async (file) => {
+              const next = await articleApi.uploadImage(article.id, file);
+              onArticleChange(next);
+              return next;
+            },
+          }}
+        />
 
         <div className={`st-view${agent.running ? ' is-locked' : ''}`}>
           <div className="st-stage">
@@ -264,6 +530,11 @@ export function CardStudio({
               className="st-canvas"
               ref={stageRef}
               onScroll={onCanvasScroll}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('.card')) return;
+                setSelectedId(null);
+                setOverlayId(null);
+              }}
             >
               {deck.blocks.length === 0 ? (
                 agent.running ? (
@@ -292,6 +563,8 @@ export function CardStudio({
                           id={`card-${i}`}
                           className={`st-frame${slot?.overflow ? ' is-bad' : ''}`}
                           style={{ width: PAGE_W * scale, height: PAGE_H * scale }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => dropDecor(e, i)}
                         >
                           <div className="st-scale" style={{ transform: `scale(${scale})` }}>
                             {i === 0 ? (
@@ -299,8 +572,10 @@ export function CardStudio({
                                 cover={deck.cover}
                                 settings={deck.settings}
                                 total={total}
+                                live={live}
                                 images={images}
                                 overlays={overlaysOnPage(deck.overlays ?? [], 0, layout.pages)}
+                                overlayLive={overlayLive}
                               />
                             ) : slot ? (
                               <ContentCard
@@ -310,7 +585,9 @@ export function CardStudio({
                                 settings={deck.settings}
                                 pageNo={i + 1}
                                 total={total}
+                                live={live}
                                 overlays={overlaysOnPage(deck.overlays ?? [], i, layout.pages)}
+                                overlayLive={overlayLive}
                               />
                             ) : null}
                           </div>
@@ -418,6 +695,10 @@ function CanvasBlank({ busy, title, text, children }: { busy?: boolean; title: s
 
 function clampZoom(n: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(n.toFixed(2))));
+}
+
+function clampPct(n: number): number {
+  return Math.min(98, Math.max(2, n));
 }
 
 function scrollCanvasTo(root: HTMLElement, i: number, behavior: ScrollBehavior) {

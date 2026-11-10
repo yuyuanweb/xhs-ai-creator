@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { buildArticleIndex, type Deck, type SourceArticle } from '@rcs/shared';
 import { articleApi, deckApi } from '../api/endpoints';
-import { useDeckEditor } from '../editor/useDeckEditor';
+import { useDeckEditor, type DeckHistory } from '../editor/useDeckEditor';
 import { useExternalRevision } from '../editor/useExternalRevision';
 import { useLayoutUpload } from '../editor/useLayoutUpload';
 import { useDeckLayout } from '../layout/useDeckLayout';
@@ -19,7 +19,7 @@ export function EditorPage() {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [article, setArticle] = useState<SourceArticle | null>(null);
   const [error, setError] = useState('');
-  /** 外部改稿后整块编辑区重挂：测高缓存属于旧稿，不能接着用 */
+  /** 外部改稿后整块编辑区重挂：撤销栈、测高缓存都属于旧稿，不能接着用 */
   const [reloads, setReloads] = useState(0);
 
   useExternalRevision(deckId, () => {
@@ -59,7 +59,8 @@ export function EditorPage() {
       initial={deck}
       article={article}
       autostart={autostart}
-      onRetryImages={async () => setArticle(await articleApi.retryImages(article.id))}
+        onRetryImages={async () => setArticle(await articleApi.retryImages(article.id))}
+        onArticleChange={setArticle}
     />
   );
 }
@@ -88,11 +89,13 @@ function Workspace({
   article,
   autostart,
   onRetryImages,
+  onArticleChange,
 }: {
   initial: Deck;
   article: SourceArticle;
   autostart: boolean;
   onRetryImages: () => Promise<void>;
+  onArticleChange: (article: SourceArticle) => void;
 }) {
   const editor = useDeckEditor(initial);
   const index = useMemo(() => buildArticleIndex(article), [article]);
@@ -106,6 +109,16 @@ function Workspace({
     agent.start();
   }, [autostart, agent.start, editor.deck.blocks.length]);
 
+  const history: DeckHistory = useMemo(
+    () => ({
+      canUndo: editor.canUndo && !agent.running,
+      canRedo: editor.canRedo && !agent.running,
+      undo: editor.undo,
+      redo: editor.redo,
+    }),
+    [editor.canUndo, editor.canRedo, editor.undo, editor.redo, agent.running],
+  );
+
   return (
     <>
       <CardStudio
@@ -114,9 +127,11 @@ function Workspace({
         images={images}
         layout={layout}
         updateDeck={editor.updateDeck}
+        history={history}
         save={{ state: editor.saveState, retry: editor.retrySave }}
         agent={agent}
         onRetryImages={onRetryImages}
+        onArticleChange={onArticleChange}
       />
       {/* 测高容器必须始终挂载，否则分页永远拿不到高度 */}
       <Measurer

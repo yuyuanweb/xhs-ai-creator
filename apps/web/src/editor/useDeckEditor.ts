@@ -1,32 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Deck } from '@rcs/shared';
 import { deckApi } from '../api/endpoints';
+import {
+  COALESCE_MS,
+  MAX_HISTORY,
+  applySnapshot,
+  isMetaOnly,
+  sameSnapshot,
+  snapshotOf,
+  type DeckSnapshot,
+} from './history';
 
 /** 人工改动不必每次敲键都打一次接口 */
 const SAVE_DEBOUNCE = 800;
 
-export type UpdateDeck = (updater: (prev: Deck) => Deck) => void;
+export type UpdateDeck = (updater: (prev: Deck) => Deck, opts?: { history?: boolean }) => void;
+
+export interface DeckHistory {
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+}
 
 /** pending：改了还没到落盘时间；saving：请求在路上 */
 export type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
-export interface DeckEditor {
+export interface DeckEditor extends DeckHistory {
   deck: Deck;
   saveState: SaveState;
   retrySave: () => void;
   updateDeck: UpdateDeck;
 }
 
-/** 编辑台的稿子状态：改动和落盘都走这里 */
+/**
+ * 编辑台的稿子状态：改动、落盘、撤销重做都走这里。
+ * Agent 一轮里的中间态用 history: false，整次生成只占历史里的一步。
+ */
 export function useDeckEditor(initial: Deck): DeckEditor {
   const [deck, setDeck] = useState(initial);
   const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const past = useRef<DeckSnapshot[]>([]);
+  const future = useRef<DeckSnapshot[]>([]);
+  const lastPush = useRef<{ at: number; meta: boolean } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const deckRef = useRef(deck);
   deckRef.current = deck;
 
+  // 换了一篇稿，旧的撤销栈不能跟着用
   useEffect(() => {
     setDeck(initial);
+    past.current = [];
+    future.current = [];
+    lastPush.current = null;
+    setCanUndo(false);
+    setCanRedo(false);
   }, [initial.id]);
 
   const persist = useCallback((next: Deck) => {
@@ -61,19 +92,67 @@ export function useDeckEditor(initial: Deck): DeckEditor {
     return () => window.removeEventListener('beforeunload', warn);
   }, [saveState]);
 
-  const updateDeck = useCallback<UpdateDeck>(
-    (updater) => {
-      setDeck((prev) => {
-        const next = updater(prev);
-        if (next === prev) return prev;
-        persist(next);
-        return next;
-      });
+  const commit = useCallback(
+    (prev: Deck, next: Deck, record: boolean) => {
+      if (next === prev || sameSnapshot(prev, next)) return prev;
+
+      if (record) {
+        const meta = isMetaOnly(prev, next);
+        const coalesce =
+          meta && lastPush.current?.meta && Date.now() - lastPush.current.at < COALESCE_MS && past.current.length > 0;
+        if (!coalesce) {
+          past.current = [...past.current, snapshotOf(prev)].slice(-MAX_HISTORY);
+        }
+        future.current = [];
+        lastPush.current = { at: Date.now(), meta };
+        setCanUndo(true);
+        setCanRedo(false);
+      }
+
+      persist(next);
+      return next;
     },
     [persist],
   );
 
+  const updateDeck = useCallback<UpdateDeck>(
+    (updater, opts) => {
+      setDeck((prev) => commit(prev, updater(prev), opts?.history !== false));
+    },
+    [commit],
+  );
+
+  const undo = useCallback(() => {
+    const snap = past.current[past.current.length - 1];
+    if (!snap) return;
+    past.current = past.current.slice(0, -1);
+    future.current = [...future.current, snapshotOf(deckRef.current)];
+    lastPush.current = null;
+    setCanUndo(past.current.length > 0);
+    setCanRedo(true);
+    setDeck((prev) => {
+      const next = applySnapshot(prev, snap);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const redo = useCallback(() => {
+    const snap = future.current[future.current.length - 1];
+    if (!snap) return;
+    future.current = future.current.slice(0, -1);
+    past.current = [...past.current, snapshotOf(deckRef.current)];
+    lastPush.current = null;
+    setCanUndo(true);
+    setCanRedo(future.current.length > 0);
+    setDeck((prev) => {
+      const next = applySnapshot(prev, snap);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 
-  return { deck, saveState, retrySave, updateDeck };
+  return { deck, saveState, retrySave, updateDeck, canUndo, canRedo, undo, redo };
 }

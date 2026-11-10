@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { SourceArticle, SourceBlock, SourceImage } from '@rcs/shared';
+import { uploadOrigin, type SourceArticle, type SourceBlock, type SourceImage } from '@rcs/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { ImageFetcherService } from '../storage/image-fetcher.service';
 import { newId } from '../common/id';
@@ -54,6 +54,46 @@ export class ArticlesService {
     return results;
   }
 
+  async addImage(id: string, userId: string, file: { buffer: Buffer; mimetype: string; originalname: string }): Promise<SourceArticle> {
+    const { article } = await this.attachImages(id, userId, 'up', [
+      { buffer: file.buffer, mime: file.mimetype, origin: uploadOrigin(file.originalname), alt: file.originalname },
+    ]);
+    return article;
+  }
+
+  /**
+   * 存下几张新图并挂到文章上。先存文件再读文章、一次写库：
+   * 存图期间用户可能又上传了图，读早了会把那张覆盖掉
+   */
+  async attachImages(
+    id: string,
+    userId: string,
+    idPrefix: string,
+    files: NewImage[],
+  ): Promise<{ article: SourceArticle; added: SourceImage[] }> {
+    const saved = await Promise.all(files.map((f) => this.images.saveUpload(f.buffer, f.mime)));
+    const article = await this.get(id, userId);
+    const images = [...article.images];
+    const added = saved.map((s, i): SourceImage => {
+      const file = files[i]!;
+      const img: SourceImage = {
+        id: nextImageId(images, idPrefix),
+        origin: file.origin,
+        url: s.url,
+        width: s.width,
+        height: s.height,
+        ...(file.alt ? { alt: file.alt } : {}),
+      };
+      images.push(img);
+      return img;
+    });
+    const row = await this.prisma.article.update({
+      where: { id },
+      data: { images: images as unknown as object },
+    });
+    return { article: toArticle(row), added };
+  }
+
   async retryImages(id: string, userId: string): Promise<SourceArticle> {
     const article = await this.get(id, userId);
     const images = await Promise.all(
@@ -105,6 +145,21 @@ type ArticleRow = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export interface NewImage {
+  buffer: Buffer;
+  mime: string;
+  origin: string;
+  alt?: string;
+}
+
+function nextImageId(images: SourceImage[], prefix: string): string {
+  const used = new Set(images.map((i) => i.id));
+  let n = images.length;
+  let id = `${prefix}${n}`;
+  while (used.has(id)) id = `${prefix}${++n}`;
+  return id;
+}
 
 function toArticle(row: ArticleRow): SourceArticle {
   return {

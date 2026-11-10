@@ -68,6 +68,11 @@ export const articleApi = {
   list: () => api.get<ArticleSummary[]>('/articles'),
   get: (id: string) => api.get<SourceArticle>(`/articles/${id}`),
   retryImages: (id: string) => api.post<SourceArticle>(`/articles/${id}/retry-images`),
+  uploadImage: (id: string, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return api.post<SourceArticle>(`/articles/${id}/images`, body);
+  },
   remove: (id: string) => api.del<{ ok: boolean }>(`/articles/${id}`),
 };
 

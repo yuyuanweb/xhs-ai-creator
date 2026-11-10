@@ -56,6 +56,16 @@ export function newOverlayId(): string {
   return `ov${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function defaultOverlay(partial: Omit<PageOverlay, 'id' | 'x' | 'y' | 'size'> & Partial<PageOverlay>): PageOverlay {
+  return {
+    id: newOverlayId(),
+    x: 88,
+    y: 10,
+    size: 10,
+    ...partial,
+  };
+}
+
 /**
  * 模型给的装饰：at 可以是 cover、原文章节号 s3，或已经落库的块 id。
  * 章节号落到认领它的那个 h2 上，分页变了装饰还跟着那一章。
@@ -98,6 +108,11 @@ export function overlaysOnPage(overlays: PageOverlay[], pageIndex: number, pages
   if (pageIndex === 0) return overlays.filter((o) => o.anchor === 'cover');
   const ids = new Set(pages[pageIndex - 1]?.blockIds ?? []);
   return overlays.filter((o) => o.anchor !== 'cover' && ids.has(o.anchor));
+}
+
+export function pruneOverlays(overlays: PageOverlay[], blocks: CardBlock[]): PageOverlay[] {
+  const ids = new Set(blocks.map((b) => b.id));
+  return overlays.filter((o) => o.anchor === 'cover' || ids.has(o.anchor));
 }
 
 function resolveAnchor(at: unknown, blocks: CardBlock[]): string | undefined {

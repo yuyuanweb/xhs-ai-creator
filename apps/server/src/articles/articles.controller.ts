@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -28,6 +29,17 @@ export class ArticlesController {
   @Post(':id/retry-images')
   retryImages(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.articles.retryImages(id, user.id);
+  }
+
+  @Post(':id/images')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 8 * 1024 * 1024 } }))
+  uploadImage(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file?: { buffer: Buffer; mimetype: string; originalname: string },
+  ) {
+    if (!file?.buffer?.length) throw new BadRequestException('请选择一张图片');
+    return this.articles.addImage(id, user.id, file);
   }
 
   @Delete(':id')
