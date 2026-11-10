@@ -17,7 +17,10 @@ import {
 } from '@rcs/shared';
 import type { DraftBlocks, RawBlock } from './draft-blocks';
 
-/** 初稿的输出格式和收稿规则：告诉模型写什么样的 JSON，收稿时再把它洗成正式的卡片稿 */
+/**
+ * 初稿的输出格式和收稿规则。编辑器里的 AI 和 Cursor 这类外部 Agent 写的是同一份 JSON，
+ * 走同一套清洗，落库后的稿子长得一样
+ */
 
 export const CONTENT_TYPES: ContentType[] = ['opinion', 'listicle', 'review', 'tutorial'];
 

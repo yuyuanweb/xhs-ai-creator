@@ -90,7 +90,7 @@ export class AgentService {
     return { deck, article };
   }
 
-  /** 写作规则全集：写作风格、封面规则、平台硬约束和各内容类型的张数 */
+  /** 写作规则全集。外部 Agent 写初稿时拿到的也是这一份，两边才写得出同一种稿子 */
   async systemPrompt(stage: 'draft' | 'revise'): Promise<string> {
     const [style, cover, main] = await Promise.all([
       this.prompts.get('style'),

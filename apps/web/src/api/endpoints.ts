@@ -3,6 +3,8 @@ import type {
   AgentStepResponse,
   Deck,
   DeckSettings,
+  DeckSync,
+  LayoutUpload,
   DraftProposal,
   SourceArticle,
   SourceImage,
@@ -37,6 +39,8 @@ export interface LibraryItem {
     overlays: PageOverlay[];
   } | null;
   coverImages: SourceImage[];
+  /** 编辑台打开过才有；服务重启后为空 */
+  layout: { cards: number; thin: number; overflow: number } | null;
 }
 
 export interface AuthUser {
@@ -84,6 +88,8 @@ export const deckApi = {
   get: (id: string) => api.get<Deck>(`/decks/${id}`),
   update: (id: string, patch: DeckPatch) => api.patch<Deck>(`/decks/${id}`, patch),
   remove: (id: string) => api.del<{ ok: boolean }>(`/decks/${id}`),
+  uploadLayout: (id: string, upload: LayoutUpload) => api.put<{ ok: boolean }>(`/decks/${id}/layout`, upload),
+  sync: (id: string) => api.get<DeckSync>(`/decks/${id}/sync`),
 };
 
 export const agentApi = {

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rednote-studio": {
+      "command": "${workspaceFolder}/apps/mcp/node_modules/.bin/tsx",
+      "args": ["${workspaceFolder}/apps/mcp/src/index.ts"]
+    }
+  }
+}

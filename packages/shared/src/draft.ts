@@ -5,7 +5,8 @@ import { upgradeCover } from './defaults.js';
 import { findAccent, findTheme } from './themes.js';
 
 /**
- * 把一份初稿落到卡片稿上：换上初稿的块流和封面，主题和张数跟着初稿走
+ * 把一份初稿落到卡片稿上。编辑器里的 AI 和外部 Agent（Cursor 里的模型）交来的初稿都走这一处，
+ * 两条路径落库后长得一样
  */
 export function applyDraft(deck: Deck, proposal: DraftProposal): Deck {
   const theme = findTheme(proposal.themeId ?? deck.settings.themeId);

@@ -14,12 +14,13 @@ import { Icon } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
 import { Menu } from '../ui/Menu';
 
-type Filter = 'all' | 'done' | 'todo';
+type Filter = 'all' | 'done' | 'todo' | 'fix';
 
 const FILTERS: Array<{ id: Filter; label: string; test: (item: LibraryItem) => boolean }> = [
   { id: 'all', label: '全部', test: () => true },
   { id: 'done', label: '已生成', test: (i) => (i.deck?.blockCount ?? 0) > 0 },
   { id: 'todo', label: '未生成', test: (i) => !i.deck?.blockCount },
+  { id: 'fix', label: '需调整', test: (i) => Boolean(i.layout && (i.layout.overflow || i.layout.thin)) },
 ];
 
 function greeting(): string {
@@ -101,13 +102,13 @@ export function HomePage() {
         <div className="works-head">
           <h2>我的作品</h2>
           <div className="chips" role="tablist">
-            {FILTERS.map((f) => (
+            {FILTERS.filter((f) => f.id !== 'fix' || counts.fix > 0).map((f) => (
               <button
                 key={f.id}
                 type="button"
                 role="tab"
                 aria-selected={filter === f.id}
-                className="chip"
+                className={`chip${f.id === 'fix' ? ' is-warn' : ''}`}
                 onClick={() => setFilter(f.id)}
               >
                 {f.label}
@@ -268,10 +269,13 @@ function WorkCard({ item, onRemove }: { item: LibraryItem; onRemove: () => void 
   );
 }
 
+/** 有问题的稿子给彩色标签，正常的只写张数 */
 function WorkStatus({ item }: { item: LibraryItem }) {
   if (!item.deck?.blockCount) return <span className="tag is-mute">未生成</span>;
   if (item.deck.status === 'generating') return <span className="tag is-brand">生成中</span>;
-  return <span>已生成 ·</span>;
+  if (item.layout?.overflow) return <span className="tag is-bad">{item.layout.overflow} 页装不下</span>;
+  if (item.layout?.thin) return <span className="tag is-warn">{item.layout.thin} 页偏空</span>;
+  return <span>{item.layout ? `${item.layout.cards} 张 ·` : '已生成 ·'}</span>;
 }
 
 /** 作品封面。没生成过的稿子也画一张默认封面，网格才整齐 */
@@ -282,8 +286,8 @@ function CoverThumb({ item }: { item: LibraryItem }) {
     <ScaledCard>
       <CoverCard
         cover={item.deck?.cover ?? defaultCover(item.title)}
-        settings={{ ...settings, showPageNumber: false }}
-        total={1}
+        settings={{ ...settings, showPageNumber: Boolean(item.layout) && settings.showPageNumber }}
+        total={item.layout?.cards ?? 1}
         overlays={item.deck?.overlays ?? []}
         images={images}
       />

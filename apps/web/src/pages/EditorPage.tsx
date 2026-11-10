@@ -3,6 +3,8 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { buildArticleIndex, type Deck, type SourceArticle } from '@rcs/shared';
 import { articleApi, deckApi } from '../api/endpoints';
 import { useDeckEditor } from '../editor/useDeckEditor';
+import { useExternalRevision } from '../editor/useExternalRevision';
+import { useLayoutUpload } from '../editor/useLayoutUpload';
 import { useDeckLayout } from '../layout/useDeckLayout';
 import { useAgent } from '../agent/useAgent';
 import { Measurer } from '../render/Measurer';
@@ -17,6 +19,19 @@ export function EditorPage() {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [article, setArticle] = useState<SourceArticle | null>(null);
   const [error, setError] = useState('');
+  /** 外部改稿后整块编辑区重挂：测高缓存属于旧稿，不能接着用 */
+  const [reloads, setReloads] = useState(0);
+
+  useExternalRevision(deckId, () => {
+    void deckApi
+      .get(deckId)
+      .then((d) => {
+        setDeck(d);
+        setReloads((n) => n + 1);
+      })
+      .catch((err: Error) => setError(err.message));
+  });
+
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -40,7 +55,7 @@ export function EditorPage() {
 
   return (
     <Workspace
-      key={deck.id}
+      key={`${deck.id}:${reloads}`}
       initial={deck}
       article={article}
       autostart={autostart}
@@ -84,6 +99,7 @@ function Workspace({
   const { images } = index;
   const layout = useDeckLayout(editor.deck, index);
   const agent = useAgent(editor.deck, editor.updateDeck, layout, index);
+  useLayoutUpload(editor.deck, layout);
 
   useEffect(() => {
     if (!autostart || editor.deck.blocks.length > 0) return;

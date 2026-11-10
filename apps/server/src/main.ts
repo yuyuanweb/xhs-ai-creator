@@ -13,7 +13,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('api');
-  // 整份卡片稿是几十 KB 的中文 JSON，默认的 100kb 上限经常不够
+  // 整份卡片稿和外部 Agent 交来的初稿都是几十 KB 的中文 JSON，默认的 100kb 上限经常不够
   app.useBodyParser('json', { limit: '5mb' });
   app.enableCors({
     origin: parseOrigins(config.get<string>('CORS_ORIGIN', 'http://localhost:18473')),

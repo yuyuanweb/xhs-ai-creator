@@ -1,0 +1,23 @@
+{
+  "name": "@rcs/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "让 Cursor 里的任意模型直接给工作台写卡片稿，不经过工具配置的大模型",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --minify --legal-comments=none --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\" --outfile=../../.cursor/skills/rednote-studio/scripts/rednote-studio-mcp.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@rcs/shared": "workspace:*",
+    "@types/node": "^22.20.4",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

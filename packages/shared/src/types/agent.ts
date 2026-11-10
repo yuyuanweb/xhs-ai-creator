@@ -21,6 +21,38 @@ export interface DraftProposal {
 }
 
 /**
+ * 外部 Agent（比如 Cursor 里的任意模型）写初稿要的材料：和内置 AI 拿到的是同一套规则、同一份原文和输出格式。
+ * 外部 Agent 自己按这些写出初稿 JSON 再交回来，不经过工具配置的大模型
+ */
+export interface DraftBrief {
+  deckId: string;
+  articleId: string;
+  title: string;
+  /** 写作规则全集 */
+  rules: string;
+  /** 压成行式文本的原文，带章节号、配图 id 和章节清单 */
+  article: string;
+  /** 初稿 JSON 的结构说明 */
+  outputSpec: string;
+}
+
+/** 外部初稿或补章落库后的对账结果 */
+export interface DraftImportResult {
+  deckId: string;
+  /** 编辑台地址，打开就能看到排好的卡片 */
+  editorUrl: string;
+  contentType: ContentType;
+  themeId: string;
+  blockCount: number;
+  chapterCount: number;
+  imageCount: number;
+  /** 原文里没被任何 h2 认领的核心节，要再补写一次 */
+  missing: Array<{ id: string; title: string }>;
+  /** 有漏节时的补写要求，和内置 AI 追问补写用的是同一段话 */
+  gapBrief?: string;
+}
+
+/**
  * 对块流的增量修改。用补丁而不是全量替换，
  * 是因为迭代轮次里重传整份块流会让每轮输出都很长，既慢又容易被截断。
  *
@@ -74,6 +106,42 @@ export interface LayoutSnapshot {
    * source 是它在原文里所属的节，只能放进 sources 含这一节的章节
    */
   unusedImages: Array<{ id: string; source: string }>;
+}
+
+/** 编辑台回传的一次测高结果。key 是测量那一版内容的 layoutKey，服务端靠它判断快照是不是过期了 */
+export interface LayoutUpload {
+  key: string;
+  snapshot: LayoutSnapshot;
+}
+
+/**
+ * 外部 Agent 读到的排版体检。测高只有浏览器能做，所以要编辑台开着、量完当前这版才有结果：
+ * fresh 量的就是库里当前这版；stale 编辑台还没量到最新改动；missing 编辑台还没打开过这份稿
+ */
+export interface ExternalLayout {
+  deckId: string;
+  editorUrl: string;
+  status: 'fresh' | 'stale' | 'missing';
+  snapshot?: LayoutSnapshot;
+  /** 逐条点名这一轮要改什么，和内置 AI 每轮拿到的是同一段话 */
+  todo?: string;
+  /** 有问题的页上每一块的完整内容，replace 时照着改，不用再去猜条目原文 */
+  problemBlocks?: CardBlock[];
+  /** 修版规则，和内置 AI 迭代时拿到的是同一份 */
+  rules?: string;
+}
+
+export interface ExternalReviseResult {
+  deckId: string;
+  editorUrl: string;
+  applied: number;
+  /** 没生效的补丁和原因，模型要据此重写，不然它会以为改动已经生效 */
+  skipped: string[];
+}
+
+/** 编辑台轮询用：外部 Agent 最近一次改稿的时间戳，变了就重新加载。服务重启后为空 */
+export interface DeckSync {
+  externalRevision: number | null;
 }
 
 export interface ReviseBlocksArgs {
