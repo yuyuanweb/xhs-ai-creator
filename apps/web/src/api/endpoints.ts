@@ -1,6 +1,7 @@
 import type {
   Deck,
   DeckSettings,
+  DraftProposal,
   SourceArticle,
   SourceImage,
   CardBlock,
@@ -42,6 +43,13 @@ export interface AuthUser {
   role: string;
 }
 
+export interface PromptRow {
+  key: string;
+  title: string;
+  content: string;
+  updatedAt: string;
+}
+
 export const authApi = {
   login: (username: string, password: string) =>
     api.post<{ token: string; user: AuthUser }>('/auth/login', { username, password }),
@@ -76,6 +84,17 @@ export const deckApi = {
   remove: (id: string) => api.del<{ ok: boolean }>(`/decks/${id}`),
 };
 
+export const agentApi = {
+  draft: (deckId: string, model?: string, signal?: AbortSignal) =>
+    api.post<DraftProposal>(`/agent/decks/${deckId}/draft`, { model }, { signal }),
+};
+
 export const libraryApi = {
   list: () => api.get<LibraryItem[]>('/library'),
+};
+
+export const promptApi = {
+  list: () => api.get<PromptRow[]>('/prompts'),
+  update: (key: string, content: string) => api.put<PromptRow>(`/prompts/${key}`, { content }),
+  reset: (key: string) => api.post<PromptRow>(`/prompts/${key}/reset`),
 };

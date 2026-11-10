@@ -116,6 +116,58 @@
   font-size: 10.5px;
 }
 
+.st-status {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.st-status > i {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--w-accent);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+
+.st-status.is-done > i {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.16);
+}
+
+.st-status.is-drafting > i,
+.st-status.is-measuring > i,
+.st-status.is-revising > i {
+  animation: st-pulse 1.1s ease-in-out infinite;
+}
+
+.st-status.is-failed {
+  color: var(--w-danger);
+}
+
+.st-status.is-failed > i {
+  background: var(--w-danger);
+  box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.16);
+}
+
+.st-status > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-status > em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--w-dim);
+}
+
 @keyframes st-pulse {
   50% {
     opacity: 0.3;
@@ -155,6 +207,10 @@
 .sb:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.sb.is-ai .icon {
+  color: var(--w-accent);
 }
 
 .sb.is-primary {
@@ -277,6 +333,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pane-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: #a3142a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.pane-lock .icon {
+  flex: none;
+  margin-top: 2px;
 }
 
 /* ---------- 画布 ---------- */
@@ -604,7 +678,80 @@
 
 /* ---------- 修订锁定 ---------- */
 
+.st-lock {
+  position: absolute;
+  top: 14px;
+  left: calc(50% - var(--w-rail) / 2);
+  z-index: 4;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 180px);
+  padding: 6px 6px 6px 14px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12.5px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-pop);
+  animation: rise 0.25s var(--ease) both;
+}
+
+.st-lock > i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--w-accent);
+  box-shadow: 0 0 0 4px rgba(255, 36, 66, 0.3);
+  animation: st-pulse 1.1s ease-in-out infinite;
+}
+
+.st-lock > b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-lock > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.st-lock > button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.st-lock > button:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 /* 锁定时卡片上的点击本来就不生效，直接屏蔽掉，鼠标换成禁止符号，免得用户以为点了没反应是卡了 */
+.st-view.is-locked .st-frame {
+  cursor: not-allowed;
+}
+
+.st-view.is-locked .st-frame:not(.is-bad) {
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.28), 0 14px 36px -10px rgba(24, 24, 27, 0.22);
+}
+
+.st-view.is-locked .st-scale {
+  pointer-events: none;
+}
+
 /* ---------- 样式面板 ---------- */
 
 .style-sheet {

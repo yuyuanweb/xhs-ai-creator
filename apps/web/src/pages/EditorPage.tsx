@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { buildArticleIndex, type Deck, type SourceArticle } from '@rcs/shared';
 import { articleApi, deckApi } from '../api/endpoints';
 import { useDeckEditor } from '../editor/useDeckEditor';
 import { useDeckLayout } from '../layout/useDeckLayout';
+import { useAgent } from '../agent/useAgent';
 import { Measurer } from '../render/Measurer';
 import { CardStudio } from '../components/CardStudio';
 import { Empty } from '../ui/Empty';
@@ -12,6 +13,7 @@ import { Spinner } from '../ui/Logo';
 
 export function EditorPage() {
   const { deckId = '' } = useParams();
+  const autostart = Boolean((useLocation().state as { autostart?: boolean } | null)?.autostart);
   const [deck, setDeck] = useState<Deck | null>(null);
   const [article, setArticle] = useState<SourceArticle | null>(null);
   const [error, setError] = useState('');
@@ -41,6 +43,7 @@ export function EditorPage() {
       key={deck.id}
       initial={deck}
       article={article}
+      autostart={autostart}
       onRetryImages={async () => setArticle(await articleApi.retryImages(article.id))}
     />
   );
@@ -68,16 +71,24 @@ function EditorFallback({ error }: { error?: string }) {
 function Workspace({
   initial,
   article,
+  autostart,
   onRetryImages,
 }: {
   initial: Deck;
   article: SourceArticle;
+  autostart: boolean;
   onRetryImages: () => Promise<void>;
 }) {
   const editor = useDeckEditor(initial);
   const index = useMemo(() => buildArticleIndex(article), [article]);
   const { images } = index;
   const layout = useDeckLayout(editor.deck, index);
+  const agent = useAgent(editor.deck, editor.updateDeck, layout);
+
+  useEffect(() => {
+    if (!autostart || editor.deck.blocks.length > 0) return;
+    agent.start();
+  }, [autostart, agent.start, editor.deck.blocks.length]);
 
   return (
     <>
@@ -88,6 +99,7 @@ function Workspace({
         layout={layout}
         updateDeck={editor.updateDeck}
         save={{ state: editor.saveState, retry: editor.retrySave }}
+        agent={agent}
         onRetryImages={onRetryImages}
       />
       {/* 测高容器必须始终挂载，否则分页永远拿不到高度 */}

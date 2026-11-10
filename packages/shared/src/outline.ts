@@ -15,6 +15,9 @@ export interface SourceUnit {
   imageIds: string[];
 }
 
+/** 正文不到这么多字的节多半是过渡句或广告，漏掉不算缺内容 */
+const CORE_MIN_CHARS = 150;
+
 export function sourceUnits(blocks: SourceBlock[]): SourceUnit[] {
   const units: Omit<SourceUnit, 'id'>[] = [];
   let chapter = '';
@@ -42,6 +45,10 @@ export function sourceUnits(blocks: SourceBlock[]): SourceUnit[] {
   }
 
   return units.filter((u) => u.blockIds.length > 0).map((u, i) => ({ ...u, id: `s${i}` }));
+}
+
+export function isCoreUnit(unit: SourceUnit): boolean {
+  return unit.chars >= CORE_MIN_CHARS;
 }
 
 /** 截图 id → 它在原文里所属的节 */

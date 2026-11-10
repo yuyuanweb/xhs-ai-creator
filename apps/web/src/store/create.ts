@@ -50,7 +50,7 @@ export function useCreateArticle() {
         const article = await articleApi.create(markdown, title);
         const deck = await deckApi.create(article.id);
         useCreate.setState({ busy: false, dialog: null });
-        navigate(`/decks/${deck.id}`);
+        navigate(`/decks/${deck.id}`, { state: { autostart: true } });
       } catch (err) {
         useCreate.setState({ busy: false, error: errorText(err, '创建失败，请重试') });
       }

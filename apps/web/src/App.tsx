@@ -5,6 +5,7 @@ import { useCreate } from './store/create';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
 import { EditorPage } from './pages/EditorPage';
+import { PromptsPage } from './pages/PromptsPage';
 import { CreateHost } from './components/CreateDialog';
 import { FeedbackHost } from './ui/feedback';
 import { Icon } from './ui/icons';
@@ -43,6 +44,7 @@ function Shell() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/decks/:deckId" element={<EditorPage />} />
+      <Route path="/prompts" element={<PromptsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -77,6 +79,10 @@ function Sidebar() {
         <NavLink to="/" end>
           <Icon name="grid" size={18} />
           我的作品
+        </NavLink>
+        <NavLink to="/prompts">
+          <Icon name="prompt" size={18} />
+          提示词
         </NavLink>
       </nav>
       <div className="side-tip">

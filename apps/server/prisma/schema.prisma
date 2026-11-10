@@ -55,3 +55,13 @@ model Deck {
 
   @@index([articleId])
 }
+
+/// 提示词按 key 取用，界面上可直接编辑。调「自然一点」这件事只能靠反复改这里
+model Prompt {
+  key       String   @id
+  title     String
+  content   String
+  /** 人工改过的提示词不再被出厂基线覆盖；没改过的跟着代码一起升级 */
+  custom    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

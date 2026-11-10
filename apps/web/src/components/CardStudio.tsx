@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PAGE_H, PAGE_W, overlaysOnPage, type Deck, type SourceArticle, type SourceImage } from '@rcs/shared';
+import type { UseAgentResult } from '../agent/useAgent';
 import type { SaveState, UpdateDeck } from '../editor/useDeckEditor';
 import type { DeckLayout } from '../layout/useDeckLayout';
 import { buildSlots, CardStrip } from '../render/DeckCards';
 import { ContentCard } from '../render/ContentCard';
 import { CoverCard } from '../render/CoverCard';
+import { confirmDialog } from '../ui/feedback';
 import { Icon } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
 import { ExportBar } from './ExportBar';
+import { AgentLock, AgentLockNote, AgentStatus } from './studio/AgentStatus';
 import { DeckOverview } from './studio/DeckOverview';
 import { PageTag, pageLabel } from './studio/PageTag';
 import { PageRail } from './studio/PageRail';
@@ -30,6 +33,7 @@ export function CardStudio({
   layout,
   updateDeck,
   save,
+  agent,
   onRetryImages,
 }: {
   deck: Deck;
@@ -38,6 +42,7 @@ export function CardStudio({
   layout: DeckLayout;
   updateDeck: UpdateDeck;
   save: { state: SaveState; retry: () => void };
+  agent: UseAgentResult;
   onRetryImages: () => Promise<void>;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -156,6 +161,19 @@ export function CardStudio({
     if (best !== index) setIndex(best);
   };
 
+  const regenerate = async () => {
+    if (!deck.blocks.length) {
+      agent.start();
+      return;
+    }
+    const ok = await confirmDialog({
+      title: '整份重新生成？',
+      body: 'AI 会从原文重新写一版卡片稿，覆盖现在这一版。',
+      confirmText: '重新生成',
+    });
+    if (ok) agent.start();
+  };
+
   return (
     <div className="studio">
       <header className="st-bar">
@@ -189,7 +207,24 @@ export function CardStudio({
           </div>
         </div>
 
+        <AgentStatus agent={agent} />
+
         <div className="st-acts">
+          {agent.running ? (
+            <button className="sb" onClick={agent.stop}>
+              <Icon name="stop" />
+              停止
+            </button>
+          ) : (
+            <button
+              className={`sb is-ai${!deck.blocks.length ? ' is-primary' : ''}`}
+              onClick={() => void regenerate()}
+              title={deck.blocks.length ? '让 AI 重新写这一份稿子' : undefined}
+            >
+              <Icon name="generate" />
+              {deck.blocks.length ? '重新生成' : '生成初稿'}
+            </button>
+          )}
           <button type="button" className="sb" disabled={!ready} onClick={() => setPreviewOpen(true)} title="按小红书手机界面预览">
             <Icon name="phone" />
             预览
@@ -217,19 +252,30 @@ export function CardStudio({
             <span>整份稿子共用的主题和版式</span>
           </header>
           <div className="st-panel-body">
-            <SettingsPanel deck={deck} updateDeck={updateDeck} disabled={false} />
+            {agent.running ? <AgentLockNote /> : null}
+            <SettingsPanel deck={deck} updateDeck={updateDeck} disabled={agent.running} />
           </div>
         </aside>
 
-        <div className="st-view">
+        <div className={`st-view${agent.running ? ' is-locked' : ''}`}>
           <div className="st-stage">
+            <AgentLock agent={agent} />
             <div
               className="st-canvas"
               ref={stageRef}
               onScroll={onCanvasScroll}
             >
               {deck.blocks.length === 0 ? (
-                <CanvasBlank title="还没有卡片" text="卡片稿写好后，会在这里按真实排版逐页展示。" />
+                agent.running ? (
+                  <CanvasBlank busy title="AI 正在阅读原文、撰写初稿" text="通常需要一到三分钟，写完会自动排版并逐页检查。" />
+                ) : (
+                  <CanvasBlank title="还没有卡片" text="先让 AI 写一版初稿，再在这里逐页精修。">
+                    <button type="button" className="btn is-primary" onClick={() => void regenerate()}>
+                      <Icon name="generate" />
+                      生成初稿
+                    </button>
+                  </CanvasBlank>
+                )
               ) : !layout.measured ? (
                 <CanvasBlank busy title="正在测量排版" text="按真实字号计算每一页能放下多少内容。" />
               ) : (
