@@ -9,7 +9,9 @@ export default defineConfig({
     port: 18473,
     strictPort: true,
     proxy: {
+      // 转存后的配图必须与页面同源，否则导出时读不进 SVG
       '/api': { target: API, changeOrigin: true, timeout: 0, proxyTimeout: 0 },
+      '/static': { target: API, changeOrigin: true },
     },
   },
 });

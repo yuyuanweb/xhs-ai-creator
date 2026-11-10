@@ -13,4 +13,45 @@ model User {
   passwordHash String
   role         String    @default("user")
   createdAt    DateTime  @default(now())
+  articles     Article[]
+}
+
+model Article {
+  id        String   @id
+  userId    String
+  title     String
+  markdown  String
+  /// SourceBlock[]
+  blocks    Json
+  /// SourceImage[]，url 指向转存后的地址，origin 保留原始地址以便重新抓取
+  images    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decks Deck[]
+
+  @@index([userId])
+}
+
+model Deck {
+  id               String   @id
+  articleId        String
+  contentType      String
+  /// CardBlock[]
+  blocks           Json
+  /// CoverSpec
+  cover            Json
+  /// DeckSettings
+  settings         Json
+  disabledBlockIds Json
+  /// PageOverlay[]
+  overlays         Json     @default("[]")
+  status           String   @default("draft")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
 }

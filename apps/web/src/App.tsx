@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
-import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useMatch } from 'react-router-dom';
 import { useAuth } from './store/auth';
+import { useCreate } from './store/create';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
+import { EditorPage } from './pages/EditorPage';
+import { CreateHost } from './components/CreateDialog';
 import { FeedbackHost } from './ui/feedback';
 import { Icon } from './ui/icons';
 import { Logo, LogoMark, Spinner } from './ui/Logo';
@@ -33,31 +36,53 @@ function BootScreen() {
 }
 
 function Shell() {
+  // 编辑台自带一整条工具栏，不再套侧边栏，把宽度全留给画布
+  const inEditor = useMatch('/decks/:deckId');
+
+  const routes = (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/decks/:deckId" element={<EditorPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+
   return (
-    <div className="app">
-      <Sidebar />
-      <main className="app-main">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
+    <>
+      {inEditor ? (
+        <div className="app is-editor">{routes}</div>
+      ) : (
+        <div className="app">
+          <Sidebar />
+          <main className="app-main">{routes}</main>
+        </div>
+      )}
+      <CreateHost />
+    </>
   );
 }
 
 function Sidebar() {
+  const openCreate = useCreate((s) => s.open);
   return (
     <aside className="side">
       <NavLink to="/" className="side-brand" aria-label="回到首页">
         <Logo />
       </NavLink>
+      <button type="button" className="btn is-primary is-block side-new" onClick={() => openCreate('file')}>
+        <Icon name="plus" />
+        新建图文
+      </button>
       <nav className="side-nav">
         <NavLink to="/" end>
           <Icon name="grid" size={18} />
           我的作品
         </NavLink>
       </nav>
+      <div className="side-tip">
+        <b>小提示</b>
+        <span>把 .md 文件直接拖进首页，就能马上开始生成。</span>
+      </div>
       <UserMenu />
     </aside>
   );
