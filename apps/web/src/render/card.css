@@ -1,0 +1,1565 @@
+/**
+ * 卡片视觉规范。这是唯一的一份 —— 编辑器预览、Agent 测高、导出截图共用它，
+ * 所以预览和成品不可能漂移。所有可变的量都走主题注入的 CSS 变量。
+ *
+ * 默认规则就是瑞士主题的长相，论文主题只写差异，集中在 data-mode='paper' 下；
+ * 手帐、暗夜、波普各自一个文件放在 themes/ 下，同样只写差异。
+ */
+
+.card {
+  width: 1080px;
+  height: 1440px;
+  box-sizing: border-box;
+  padding: 56px 72px 44px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: var(--fs);
+  line-height: 1.62;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * 就地编辑的输入框和它替换掉的静态文字共用 className，长相由那个 className 决定。
+ * 这里用 :where 把优先级压到最低，只补输入框自己该有的东西，不和任何组件样式抢。
+ */
+.card :where(textarea.card-field) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  resize: none;
+  /* 编辑时内容可能比卡片留的位置高：让输入框自己收缩并在内部滚动，而不是被外层裁掉 */
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 0;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 0 -3px 0 var(--accent);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  field-sizing: content;
+  white-space: pre-wrap;
+}
+
+.card textarea.card-field::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- 页眉 / 正文 / 页脚 ---------- */
+
+/* 瑞士：顶上一条黑粗线，线下左署名右话题，每页一样，像杂志栏头 */
+.c-head {
+  height: 40px;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 2px solid var(--heading);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--heading);
+  white-space: nowrap;
+}
+
+.c-byline,
+.c-topic,
+.c-section {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-topic {
+  text-align: right;
+}
+
+.c-cont {
+  font-style: normal;
+  margin-left: 10px;
+  color: var(--muted);
+}
+
+.c-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 30px;
+  padding-bottom: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.b-hit {
+  display: contents;
+}
+
+.c-float {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.c-sticker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  pointer-events: auto;
+  cursor: grab;
+  line-height: 1;
+  font-size: 1em;
+  container-type: inline-size;
+}
+
+.c-sticker > img,
+.c-sticker > svg,
+.c-sticker-face {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+
+.c-sticker-face {
+  font-size: 90cqw;
+  text-align: center;
+  line-height: 1;
+}
+
+.c-sticker.is-on {
+  outline: 3px solid var(--accent, #7cff6b);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+
+.c-sticker-x {
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 18px;
+  line-height: 26px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.c-sticker-resize {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #1a1a1a;
+  border-radius: 3px;
+  background: #fff;
+  cursor: nwse-resize;
+}
+
+.c-foot {
+  height: 46px;
+  margin-top: 24px;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid var(--divider);
+  padding-top: 14px;
+  font-size: 20px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.c-page {
+  font-family: var(--code-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.c-head textarea.card-field,
+.c-foot textarea.card-field {
+  width: auto;
+  min-width: 180px;
+}
+
+/* 论文：页眉是章节名 + § 节号，下面一条细线，像论文的节标题 */
+.card[data-mode='paper'] .c-head {
+  border-top: none;
+  border-bottom: 1px solid var(--divider);
+  align-items: center;
+  padding-bottom: 6px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.card[data-mode='paper'] .c-chapter {
+  font-family: var(--code-font);
+  color: var(--accent-ink);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 基础块 ---------- */
+
+/* 「越大越轻」：字号往上走一档、字重往下压一档，否则大字会变成落地页横幅 */
+.b-h2 {
+  font-family: var(--heading-font);
+  font-size: calc(var(--fs) * 1.72);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--display-tracking);
+  color: var(--heading);
+  line-height: 1.2;
+  white-space: pre-line;
+  margin: 0 0 30px;
+}
+
+.b-h3 {
+  font-family: var(--body-font);
+  font-size: calc(var(--fs) * 1.02);
+  font-weight: 600;
+  color: var(--heading);
+  line-height: 1.4;
+  margin: 6px 0 14px;
+}
+
+.b-p {
+  margin: 0 0 22px;
+  white-space: pre-line;
+}
+
+.b-quote {
+  margin: 0 0 22px;
+  padding: 4px 0 4px 26px;
+  border-left: 4px solid var(--heading);
+  color: var(--heading);
+  white-space: pre-line;
+}
+
+.b-list {
+  margin: 0 0 22px;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: li;
+}
+
+.b-list li {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 12px;
+}
+
+.b-ul li::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: calc(var(--fs) * 0.68);
+  width: 10px;
+  height: 10px;
+  background: var(--heading);
+}
+
+.b-ol li {
+  counter-increment: li;
+}
+
+.b-ol li::before {
+  content: counter(li, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.62);
+  line-height: calc(var(--fs) * 1.62);
+  color: var(--muted);
+}
+
+.b-list textarea.card-field {
+  background: transparent;
+}
+
+.b-code {
+  margin: 0 0 22px;
+  background: var(--code-bg);
+  padding: 24px 28px;
+  overflow: hidden;
+}
+
+.b-lang {
+  font-family: var(--code-font);
+  font-size: 20px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.b-code pre {
+  margin: 0;
+  min-width: 0;
+}
+
+.b-code code,
+.b-code .b-code-edit {
+  display: block;
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.58);
+  line-height: 1.45;
+  color: var(--code-text);
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+
+.b-code textarea.card-field {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 缩过的图和本身就窄的图居中，靠左会在右边留一块像没排完的空白 */
+.b-img {
+  margin: 0 0 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.b-img img {
+  width: var(--img-w, 100%);
+  max-width: 100%;
+  max-height: var(--img-max-h, 620px);
+  height: auto;
+  display: block;
+  border: var(--img-border);
+  box-sizing: border-box;
+  border-radius: var(--img-radius);
+  object-fit: contain;
+}
+
+.b-cap {
+  align-self: stretch;
+  margin: 0;
+  text-align: center;
+  font-size: max(20px, calc(var(--fs) * 0.58));
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.c-body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* 论文：衬线粗标题，正文略小一号、行距更密，靠层级而不是字号撑结构 */
+.card[data-mode='paper'] .b-h2 {
+  font-size: calc(var(--fs) * 1.46);
+  line-height: 1.28;
+  margin-bottom: 22px;
+}
+
+.card[data-mode='paper'] .b-h3 {
+  font-size: calc(var(--fs) * 0.9);
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-p {
+  font-size: calc(var(--fs) * 0.9);
+}
+
+.card[data-mode='paper'] .b-quote {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  padding: 16px 24px;
+}
+
+.card[data-mode='paper'] .b-ul li::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.card[data-mode='paper'] .b-code {
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+}
+
+/* ---------- 组件：序号行 ---------- */
+
+.b-steps {
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+/* 瑞士：细字大序号靠左，一行一条细线隔开 */
+.b-step {
+  display: grid;
+  grid-template-columns: calc(var(--fs) * 2.6) 1fr;
+  align-items: baseline;
+  padding: 26px 0;
+  border-top: 1px solid var(--divider);
+}
+
+.b-step:last-child {
+  padding-bottom: 6px;
+}
+
+.b-step-no {
+  font-size: calc(var(--fs) * 1.02);
+  font-weight: 300;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.b-step-title {
+  font-size: calc(var(--fs) * 0.98);
+  font-weight: 600;
+  color: var(--heading);
+  line-height: 1.4;
+}
+
+.b-step-text {
+  margin-top: 8px;
+  font-size: calc(var(--fs) * 0.8);
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+/* 论文：主色圆点序号，行距收紧，不画分隔线 */
+.card[data-mode='paper'] .b-step {
+  grid-template-columns: calc(var(--fs) * 1.7) 1fr;
+  align-items: start;
+  padding: 0 0 22px;
+  border-top: none;
+}
+
+.card[data-mode='paper'] .b-steps.m-number .b-step-no {
+  width: calc(var(--fs) * 1.08);
+  height: calc(var(--fs) * 1.08);
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.52);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card[data-mode='paper'] .b-steps.m-arrow .b-step-no {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-step-title {
+  font-size: calc(var(--fs) * 0.9);
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-step-text {
+  margin-top: 4px;
+  font-size: calc(var(--fs) * 0.74);
+  color: var(--muted);
+}
+
+/* ---------- 组件：大数字 ---------- */
+
+.b-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 2), 1fr);
+  gap: 20px;
+  margin: 0 0 26px;
+}
+
+.b-stats[data-n='1'] { --n: 1; }
+.b-stats[data-n='2'] { --n: 2; }
+.b-stats[data-n='3'] { --n: 3; }
+.b-stats[data-n='4'] { --n: 4; }
+
+/* 瑞士：第一块强调色、第二块黑底，数字是细字特大号；其余落回浅灰 */
+.b-stat {
+  background: var(--surface);
+  color: var(--heading);
+  padding: 30px 30px 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.b-stat:nth-child(1) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.b-stat:nth-child(2) {
+  background: var(--heading);
+  color: var(--bg);
+}
+
+.b-stat-label {
+  font-size: calc(var(--fs) * 0.7);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/*
+ * 数字按所在格子的宽度收缩：「1%」可以顶到特大号，「3–329 秒」得小下来才装得下。
+ * --len 是数字的视觉字宽（中文算 1、英文数字算 0.55），由组件按内容写进来
+ */
+.b-stat,
+.cv-stat {
+  container-type: inline-size;
+}
+
+.b-stat-value {
+  --max: calc(var(--fs) * 3.2);
+  font-size: min(var(--max), calc(92cqi / var(--len, 2)));
+  font-weight: 200;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 18px 0 10px;
+  white-space: nowrap;
+}
+
+.b-stats[data-n='3'] .b-stat-value { --max: calc(var(--fs) * 2.3); }
+.b-stats[data-n='4'] .b-stat-value { --max: calc(var(--fs) * 1.7); }
+
+.b-stat-text {
+  font-size: calc(var(--fs) * 0.66);
+  line-height: 1.55;
+  white-space: pre-line;
+  opacity: 0.86;
+}
+
+/* 论文：不上色块，一排主色数字，中间竖线隔开，像论文里的关键结果 */
+.card[data-mode='paper'] .b-stats {
+  gap: 0;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  padding: 22px 0;
+}
+
+.card[data-mode='paper'] .b-stat {
+  background: none;
+  color: var(--heading);
+  padding: 0 16px;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.card[data-mode='paper'] .b-stat + .b-stat {
+  border-left: 1px solid var(--divider);
+}
+
+.card[data-mode='paper'] .b-stat-label {
+  order: 3;
+  font-size: calc(var(--fs) * 0.6);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.card[data-mode='paper'] .b-stat-value {
+  --max: calc(var(--fs) * 1.8);
+  font-family: var(--heading-font);
+  font-weight: 500;
+  color: var(--accent-ink);
+  margin: 0;
+}
+
+.card[data-mode='paper'] .b-stats[data-n='4'] .b-stat-value {
+  --max: calc(var(--fs) * 1.4);
+}
+
+.card[data-mode='paper'] .b-stat-text {
+  order: 4;
+  font-size: calc(var(--fs) * 0.56);
+  color: var(--muted);
+}
+
+/* ---------- 组件：卡片组 ---------- */
+
+.b-cards {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), 1fr);
+  gap: 16px;
+  margin: 0 0 26px;
+}
+
+.b-cards[data-cols='2'] { --cols: 2; }
+.b-cards[data-cols='3'] { --cols: 3; }
+
+/* 瑞士：浅灰色块，高亮那张换成强调色 */
+.b-card {
+  background: var(--surface);
+  padding: 24px 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.b-card-label {
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.54);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.b-card-title {
+  font-size: calc(var(--fs) * 0.86);
+  font-weight: 600;
+  color: var(--heading);
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.b-card-text {
+  font-size: calc(var(--fs) * 0.68);
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+.b-card.is-hl {
+  background: var(--accent);
+}
+
+.b-card.is-hl .b-card-label,
+.b-card.is-hl .b-card-title,
+.b-card.is-hl .b-card-text {
+  color: var(--on-accent);
+}
+
+/* 论文：白底细边框的卡片，高亮那张淡主色底 + 主色边 */
+.card[data-mode='paper'] .b-card {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+}
+
+.card[data-mode='paper'] .b-card-label {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-card-title {
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-card-text {
+  color: var(--muted);
+}
+
+.card[data-mode='paper'] .b-card.is-hl {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 2px solid var(--accent);
+}
+
+.card[data-mode='paper'] .b-card.is-hl .b-card-label {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-card.is-hl .b-card-title {
+  color: var(--heading);
+}
+
+.card[data-mode='paper'] .b-card.is-hl .b-card-text {
+  color: var(--text);
+}
+
+/* ---------- 组件：提示框 ---------- */
+
+.b-callout {
+  margin: 0 0 26px;
+  padding: 26px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.b-callout-label {
+  font-size: calc(var(--fs) * 0.6);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.b-callout-text {
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.b-callout .c-strong {
+  background: none;
+  padding: 0;
+}
+
+/* 瑞士：accent 是整条强调色横幅，dark 是黑底细字、加粗词换成强调色，warn 是左边一道警示色 */
+.b-callout.t-accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+}
+
+.b-callout.t-dark {
+  background: var(--heading);
+  color: var(--bg);
+  font-size: calc(var(--fs) * 1.08);
+  font-weight: 300;
+  padding: 32px 34px;
+}
+
+/* 两套主题都给加粗改过字色，深色框里要盖回来，否则加粗词会和底色融成一片 */
+.card .b-callout.t-dark .c-strong {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--accent) 72%, white);
+}
+
+.b-callout.t-warn {
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg));
+  border-left: 5px solid var(--warn);
+  color: var(--heading);
+}
+
+.b-callout.t-warn .b-callout-label {
+  color: var(--warn);
+}
+
+/* 论文：一律淡色底 + 左竖线，主色讲道理、橙色讲边界 */
+.card[data-mode='paper'] .b-callout {
+  padding: 20px 28px;
+  font-size: calc(var(--fs) * 0.88);
+}
+
+.card[data-mode='paper'] .b-callout.t-accent {
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  border-left: 5px solid var(--accent);
+  color: var(--heading);
+  font-weight: 400;
+}
+
+.card[data-mode='paper'] .b-callout.t-accent .b-callout-label {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-callout.t-warn {
+  background: color-mix(in srgb, var(--warn) 9%, var(--bg));
+}
+
+.card[data-mode='paper'] .b-callout.t-dark {
+  background: var(--heading);
+  color: var(--bg);
+  font-size: calc(var(--fs) * 0.92);
+  font-weight: 400;
+  border-radius: 4px;
+}
+
+.card[data-mode='paper'] .b-callout .c-strong {
+  font-weight: 700;
+}
+
+/* ---------- 组件：表格 ---------- */
+
+.b-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 26px;
+  font-size: calc(var(--fs) * 0.74);
+  line-height: 1.5;
+  table-layout: fixed;
+}
+
+.b-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: calc(var(--fs) * 0.62);
+  color: var(--muted);
+  padding: 0 14px 12px 0;
+  border-bottom: 2px solid var(--heading);
+  vertical-align: bottom;
+}
+
+.b-table td {
+  padding: 16px 14px 16px 0;
+  border-bottom: 1px solid var(--divider);
+  color: var(--heading);
+  vertical-align: top;
+}
+
+.b-table td:first-child {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.b-cell {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.card[data-mode='paper'] .b-table th:last-child {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-table td:last-child {
+  font-weight: 600;
+}
+
+/* ---------- 组件：流程图 ---------- */
+
+/* 横排时各环节等宽、等高，箭头单独占一窄列；竖排时每个环节一整行，箭头落在两行中间 */
+.b-flow {
+  display: flex;
+  margin: 0 0 26px;
+}
+
+.b-flow.d-row {
+  align-items: stretch;
+}
+
+.b-flow.d-col {
+  flex-direction: column;
+}
+
+.b-flow-node {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--heading);
+  padding: 22px 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.b-flow.d-col .b-flow-node {
+  flex: none;
+  display: grid;
+  grid-template-columns: calc(var(--fs) * 1.6) 1fr;
+  align-items: baseline;
+  gap: 0;
+  padding: 20px 26px;
+}
+
+.b-flow-no {
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.5);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.b-flow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.b-flow-title {
+  font-size: calc(var(--fs) * 0.82);
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+.b-flow-text {
+  font-size: calc(var(--fs) * 0.62);
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+.b-flow-arrow {
+  flex: none;
+  align-self: center;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.b-flow.d-row .b-flow-arrow {
+  width: calc(var(--fs) * 0.9);
+  margin: 0 6px;
+}
+
+.b-flow.d-col .b-flow-arrow {
+  height: calc(var(--fs) * 0.9);
+  margin: 6px 0;
+}
+
+/* 瑞士：终点那一环换成强调色块，和大数字、卡片组的高亮是同一种手法 */
+.b-flow-node.is-hl {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.b-flow-node.is-hl .b-flow-no,
+.b-flow-node.is-hl .b-flow-text {
+  color: var(--on-accent);
+}
+
+/* 论文：白底细框，箭头走主色，高亮那一环主色描边 */
+.card[data-mode='paper'] .b-flow-node {
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+}
+
+.card[data-mode='paper'] .b-flow-no {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-flow-title {
+  font-weight: 700;
+}
+
+.card[data-mode='paper'] .b-flow-text {
+  color: var(--muted);
+}
+
+.card[data-mode='paper'] .b-flow-arrow {
+  stroke: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-flow-node.is-hl {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 2px solid var(--accent);
+  color: var(--heading);
+}
+
+.card[data-mode='paper'] .b-flow-node.is-hl .b-flow-no {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='paper'] .b-flow-node.is-hl .b-flow-text {
+  color: var(--text);
+}
+
+/* ---------- 组件：条形图 ---------- */
+
+.b-chart {
+  margin: 0 0 26px;
+  display: flex;
+  flex-direction: column;
+}
+
+.b-chart-title {
+  font-size: calc(var(--fs) * 0.6);
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.4;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--heading);
+}
+
+/* 左边是对象名，右边是条和条尾的数字，一行一条细线隔开 */
+.b-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 0.34fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.b-bar-head {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.b-bar-label {
+  font-size: calc(var(--fs) * 0.7);
+  font-weight: 600;
+  color: var(--heading);
+  line-height: 1.35;
+}
+
+.b-bar-text {
+  font-size: calc(var(--fs) * 0.52);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.b-bar-track {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.b-bar-fill {
+  flex: none;
+  height: calc(var(--fs) * 0.82);
+  background: var(--heading);
+}
+
+.b-bar-value {
+  flex: none;
+  font-size: calc(var(--fs) * 0.74);
+  font-weight: 500;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.b-bar-track textarea.card-field {
+  width: auto;
+  min-width: 120px;
+}
+
+/* 有高亮时其余的条退成浅灰，只让要比的那一根跳出来 */
+.b-chart.has-hl .b-bar-fill {
+  background: color-mix(in srgb, var(--heading) 18%, var(--bg));
+}
+
+.b-chart.has-hl .b-bar.is-hl .b-bar-fill {
+  background: var(--accent);
+}
+
+.card[data-mode='paper'] .b-chart-title {
+  color: var(--accent-ink);
+  border-bottom-width: 1px;
+}
+
+.card[data-mode='paper'] .b-bar-fill {
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+
+.card[data-mode='paper'] .b-chart.has-hl .b-bar-fill {
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface));
+}
+
+.card[data-mode='paper'] .b-chart.has-hl .b-bar.is-hl .b-bar-fill {
+  background: var(--accent);
+}
+
+.card[data-mode='paper'] .b-bar.is-hl .b-bar-value {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+/* ---------- 行内 ---------- */
+
+.c-strong {
+  font-weight: 700;
+  background: linear-gradient(transparent 58%, var(--marker) 58%);
+  padding: 0 2px;
+}
+
+.no-marker .c-strong {
+  background: none;
+  color: var(--heading);
+}
+
+.c-icode {
+  font-family: var(--code-font);
+  font-size: 0.88em;
+  background: var(--surface);
+  padding: 2px 8px;
+}
+
+.c-link {
+  color: var(--accent-ink);
+  border-bottom: 2px solid var(--marker);
+}
+
+.card[data-mode='paper'] .c-strong {
+  background: none;
+  color: var(--heading);
+}
+
+.card[data-mode='paper'] .c-icode {
+  border-radius: 4px;
+  border: 1px solid var(--divider);
+}
+
+/* ---------- 封面：共用 ---------- */
+
+.cv-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 36px 0 24px;
+  overflow: hidden;
+}
+
+.cv-title {
+  font-family: var(--heading-font);
+  font-weight: var(--display-weight);
+  color: var(--heading);
+  line-height: 1.18;
+  letter-spacing: var(--display-tracking);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.cv-title-line,
+.cv-title-bar {
+  display: block;
+}
+
+.cv-kicker {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--heading);
+}
+
+.cv-lead {
+  font-size: 34px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+/*
+ * ---------- 封面：瑞士海报 ----------
+ * 和内页同一张米白底、同一条黑粗线栏头，强调色只落在几处：引子色签、标题末行的荧光笔、流程框的终点。
+ * 整页铺满强调色在缩略图里抢眼，但一滑到内页就像换了一个账号。
+ */
+
+.cover.v-poster .cv-body {
+  gap: 36px;
+}
+
+.cover.v-poster .cv-kicker {
+  align-self: flex-start;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 28px;
+  font-weight: 600;
+  padding: 10px 22px;
+}
+
+.cv-title-mark {
+  background: linear-gradient(transparent 64%, var(--marker) 64%);
+  padding: 0 4px;
+  margin: 0 -4px;
+}
+
+.no-marker .cv-title-mark {
+  background: none;
+}
+
+/* 剩下的空白分两份，一份落在标题和流程框之间，一份落在流程框和要点之间，不会在中段挖出一个大洞 */
+.cv-mid {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/*
+ * 起点是浅灰块、终点是强调色块，中间一颗黑色箭头：和内页卡片组「一灰一亮」的对照是同一套语言。
+ * 左右两个环节等宽，箭头单独占中间一列，两边的字才对称
+ */
+.cv-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  color: var(--heading);
+}
+
+/* 两个环节各自在半边里居中：靠左排时左边空、右边贴着箭头，箭头看着就偏了 */
+.cv-flow-node {
+  min-width: 0;
+  text-align: center;
+  background: var(--surface);
+  padding: 34px 24px 36px;
+}
+
+.cv-flow-node:last-child {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.cv-flow-arrow {
+  align-self: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--heading);
+  color: var(--bg);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.cv-flow-title {
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 12px;
+}
+
+.cv-flow-line {
+  font-size: 25px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.cv-flow-node:last-child .cv-flow-line {
+  color: inherit;
+  opacity: 0.86;
+}
+
+/* 数字和内页大数字一样走细字特大号，第一个数字用强调色的深色版，其余黑色 */
+.cover.v-poster .cv-stats {
+  padding-top: 22px;
+}
+
+.cover.v-poster .cv-stat-value,
+.cover.v-poster .cv-stat:last-child .cv-stat-value {
+  font-family: var(--body-font);
+  font-size: min(72px, calc(90cqi / var(--len, 2)));
+  font-weight: 300;
+  color: var(--heading);
+}
+
+.cover.v-poster .cv-stat:first-child .cv-stat-value {
+  color: var(--accent-ink);
+}
+
+/* 要点做成带序号的目录，每条上面一道细线，两栏对齐，和内页序号行同一种细线分隔 */
+.cv-points {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 48px;
+  counter-reset: cv-point;
+}
+
+.cv-point {
+  counter-increment: cv-point;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px 0 16px;
+  border-top: 1px solid var(--divider);
+  color: var(--heading);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.cv-point::before {
+  content: counter(cv-point, decimal-leading-zero);
+  flex: none;
+  font-family: var(--code-font);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---------- 封面：论文摘要页 ---------- */
+
+/* 摘要页没有示意图，各件按比例撑开整页，而不是挤在上半截、底部数字孤零零地落到页脚 */
+.cover.v-digest .cv-body {
+  gap: 26px;
+  padding: 48px 0 32px;
+  justify-content: space-between;
+}
+
+.cover.v-digest .cv-title {
+  margin-top: -8px;
+}
+
+.cover.v-digest .cv-kicker {
+  color: var(--warn);
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: -14px;
+}
+
+.cover.v-digest .cv-lead {
+  font-size: 32px;
+}
+
+.cv-facts {
+  display: flex;
+  flex-direction: column;
+}
+
+.cv-fact {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 20px;
+  align-items: baseline;
+  font-size: 34px;
+  line-height: 1.5;
+  padding: 26px 0;
+  border-top: 1px solid var(--divider);
+}
+
+.cv-fact:last-child {
+  border-bottom: 1px solid var(--divider);
+}
+
+.cv-fact-label {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.cv-fact:first-child .cv-fact-label {
+  color: var(--warn);
+}
+
+.cv-fact-text {
+  color: var(--heading);
+}
+
+.cv-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), 1fr);
+  border-top: 2px solid var(--heading);
+  padding-top: 24px;
+}
+
+.cv-stats[data-n='2'] { --n: 2; }
+.cv-stats[data-n='3'] { --n: 3; }
+.cv-stats[data-n='4'] { --n: 4; }
+
+.cv-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cv-stat-value {
+  font-family: var(--heading-font);
+  font-size: min(84px, calc(90cqi / var(--len, 2)));
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+
+.cv-stat:last-child .cv-stat-value {
+  color: var(--warn);
+}
+
+.cv-stat-label {
+  font-size: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.cv-note {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 24px;
+  color: var(--muted);
+  border-top: 1px solid var(--divider);
+  padding-top: 18px;
+  white-space: nowrap;
+}
+
+.cv-note-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv-note textarea.card-field {
+  width: auto;
+  min-width: 360px;
+}
+
+/* ---------- 封面：清单便签 ---------- */
+
+/* 标题、导语靠上，清单贴在下半页：和流程海报一样把空白收在中段，不让清单孤零零地沉到页脚 */
+.cover.v-checklist .cv-body {
+  gap: 30px;
+}
+
+.cover.v-checklist .cv-kicker {
+  align-self: flex-start;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.cv-check {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 40px;
+  row-gap: 6px;
+  padding: 30px 36px 32px;
+  background: var(--surface);
+}
+
+.cv-check[data-n='1'],
+.cv-check[data-n='2'],
+.cv-check[data-n='3'] {
+  grid-template-columns: 1fr;
+}
+
+.cv-check-item {
+  position: relative;
+  min-width: 0;
+  padding: 14px 0 14px 54px;
+  font-size: 31px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--heading);
+}
+
+/* 勾选框是强调色方块，勾用反白色描两条边再转 45° */
+.cv-check-item::before,
+.cv-check-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(14px + 0.7em - 16px);
+}
+
+.cv-check-item::before {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+}
+
+.cv-check-item::after {
+  left: 11px;
+  top: calc(14px + 0.7em - 12px);
+  width: 9px;
+  height: 17px;
+  border: solid var(--on-accent);
+  border-width: 0 4px 4px 0;
+  transform: rotate(45deg);
+}
+
+.card[data-mode='paper'] .cv-check {
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+}
+
+.card[data-mode='paper'] .cv-check-item::before {
+  border-radius: 50%;
+}
+
+/* ---------- 封面：大标题（各主题共用的备选） ---------- */
+
+.cover.v-headline .cv-body {
+  justify-content: safe center;
+}
+
+.cover.v-headline .cv-kicker {
+  align-self: flex-start;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg));
+  padding: 10px 22px;
+}
+
+.cv-title-bar {
+  display: inline-block;
+  align-self: flex-start;
+  width: fit-content;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 4px 18px 10px;
+  margin-top: 12px;
+  white-space: nowrap;
+}
+
+.cv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.cv-chip {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  padding: 8px 24px;
+  white-space: nowrap;
+}
+
+.cv-chips textarea.card-field {
+  width: auto;
+}
+
+.card[data-mode='paper'].cover.v-headline .cv-kicker,
+.card[data-mode='paper'] .cv-chip,
+.card[data-mode='paper'] .cv-title-bar {
+  border-radius: 6px;
+}
+
+/* ---------- 就地编辑。只出现在带 is-live 的卡片上，导出那份没有这些类 ---------- */
+
+.card.is-live .is-editable {
+  cursor: text;
+}
+
+.card.is-live .is-editable:hover,
+.card.is-live .is-on {
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.is-ghost {
+  opacity: 0.5;
+}
+
+/* ---------- 测高容器 ---------- */
+
+.measure {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  height: auto;
+  padding: 0;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/*
+ * 正文区是 flex 容器，块的外边距不会塌陷，每一份都实打实占高度。
+ * 测高的包裹层必须也把外边距算进来，否则每块少算二十来像素，一页攒下来就溢出了。
+ */
+.measure > [data-block-id] {
+  display: flow-root;
+}

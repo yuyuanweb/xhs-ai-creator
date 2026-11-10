@@ -1,0 +1,433 @@
+/*
+ * 手帐：方格纸底、白便签、胶带和马克笔。
+ * 组件一律是白底大圆角、带一层很浅投影的便签；强调色只落在胶带、勾选框、序号圆点和荧光笔上，
+ * 整组翻下来像一本摊开的学习笔记。
+ */
+
+.card[data-mode='memo'] {
+  --memo-shadow: 0 14px 28px -16px rgba(80, 60, 20, 0.32), 0 2px 6px rgba(80, 60, 20, 0.06);
+  --memo-tape: color-mix(in srgb, var(--accent) 72%, transparent);
+  /* 胶带两头撕开的锯齿边 */
+  --memo-tape-edge: polygon(0 0, 100% 0, 98% 20%, 100% 40%, 98% 60%, 100% 80%, 98% 100%, 0 100%, 2% 80%, 0 60%, 2% 40%, 0 20%);
+  --memo-grid: color-mix(in srgb, var(--divider) 38%, transparent);
+  background-image:
+    linear-gradient(var(--memo-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--memo-grid) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-position: -1px -1px;
+}
+
+/* ---------- 页眉页脚：左边一截胶带写署名，右边话题 ---------- */
+
+.card[data-mode='memo'] .c-head {
+  border-top: none;
+  align-items: center;
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .c-byline {
+  padding: 6px 24px;
+  background: var(--memo-tape);
+  color: var(--on-accent);
+  clip-path: var(--memo-tape-edge);
+  transform: rotate(-1.5deg);
+}
+
+.card[data-mode='memo'] .c-byline:empty {
+  display: none;
+}
+
+.card[data-mode='memo'] .c-topic {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.card[data-mode='memo'] .c-foot {
+  border-top: 2px dashed var(--divider);
+}
+
+/* ---------- 基础块 ---------- */
+
+/* 标题下半截压一道马克笔。用下划线画而不是背景，断成两行时每一行都压得到 */
+.card[data-mode='memo'] .b-h2 {
+  font-size: calc(var(--fs) * 1.6);
+  line-height: 1.28;
+  text-decoration: underline;
+  text-decoration-color: var(--marker);
+  text-decoration-thickness: 0.36em;
+  text-underline-offset: -0.2em;
+  text-decoration-skip-ink: none;
+}
+
+.card[data-mode='memo'] .b-h3 {
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-quote {
+  padding: 20px 28px;
+  border: 2px dashed color-mix(in srgb, var(--accent) 70%, var(--divider));
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.card[data-mode='memo'] .b-ul li::before {
+  left: 10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.card[data-mode='memo'] .b-ol li::before {
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.card[data-mode='memo'] .b-code {
+  border-radius: 18px;
+}
+
+.card[data-mode='memo'] .c-icode {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  border-radius: 6px;
+}
+
+/* 截图像一张贴在本子上的照片：白边、投影，顶上一截胶带 */
+.card[data-mode='memo'] .b-img {
+  position: relative;
+}
+
+.card[data-mode='memo'] .b-img img {
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-img::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  z-index: 1;
+  width: 132px;
+  height: 32px;
+  background: var(--memo-tape);
+  clip-path: var(--memo-tape-edge);
+  transform: translateX(-50%) rotate(-3deg);
+}
+
+/* ---------- 组件 ---------- */
+
+/* 序号行整组装进一张便签，行与行之间是虚线，序号是强调色圆点 */
+.card[data-mode='memo'] .b-steps {
+  padding: 6px 32px;
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-step {
+  grid-template-columns: calc(var(--fs) * 1.7) 1fr;
+  align-items: start;
+  padding: 24px 0;
+  border-top: 2px dashed var(--divider);
+}
+
+.card[data-mode='memo'] .b-step:first-child {
+  border-top: none;
+}
+
+.card[data-mode='memo'] .b-steps.m-number .b-step-no {
+  width: calc(var(--fs) * 1.1);
+  height: calc(var(--fs) * 1.1);
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: calc(var(--fs) * 0.52);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card[data-mode='memo'] .b-steps.m-arrow .b-step-no {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-step-title {
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-step-text {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+/* 大数字是一排便签，第一张换成强调色 */
+.card[data-mode='memo'] .b-stat,
+.card[data-mode='memo'] .b-stat:nth-child(2) {
+  background: var(--surface);
+  color: var(--heading);
+  border-radius: 22px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-stat:nth-child(1) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.card[data-mode='memo'] .b-stat-value {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.card[data-mode='memo'] .b-card {
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: var(--memo-shadow);
+}
+
+/* 小标签做成一枚贴纸 */
+.card[data-mode='memo'] .b-card-label {
+  align-self: flex-start;
+  padding: 3px 14px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface));
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-card-title {
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-card-text {
+  color: var(--muted);
+}
+
+.card[data-mode='memo'] .b-card.is-hl {
+  background: var(--accent);
+}
+
+.card[data-mode='memo'] .b-card.is-hl .b-card-label {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--on-accent);
+}
+
+.card[data-mode='memo'] .b-card.is-hl .b-card-text {
+  opacity: 0.86;
+}
+
+/* 结论是一张便利贴，左上角压一截胶带；风险是虚线框；压轴金句是深色便签 */
+.card[data-mode='memo'] .b-callout {
+  position: relative;
+  border-radius: 22px;
+}
+
+.card[data-mode='memo'] .b-callout.t-accent {
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  color: var(--heading);
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-callout.t-accent::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 36px;
+  width: 104px;
+  height: 28px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  clip-path: var(--memo-tape-edge);
+  transform: rotate(-4deg);
+  box-shadow: 0 1px 2px rgba(80, 60, 20, 0.08);
+}
+
+.card[data-mode='memo'] .b-callout.t-accent .b-callout-label {
+  color: var(--accent-ink);
+}
+
+.card[data-mode='memo'] .b-callout.t-dark {
+  background: var(--heading);
+  color: var(--bg);
+  font-weight: 400;
+}
+
+.card[data-mode='memo'] .b-callout.t-dark .c-strong {
+  color: var(--accent);
+}
+
+.card[data-mode='memo'] .b-callout.t-warn {
+  background: color-mix(in srgb, var(--warn) 7%, var(--surface));
+  border: 2px dashed color-mix(in srgb, var(--warn) 70%, transparent);
+}
+
+/* 表格装进一张圆角便签，表头一条强调色 */
+.card[data-mode='memo'] .b-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-table th {
+  padding: 18px 20px 14px;
+  background: color-mix(in srgb, var(--accent) 34%, var(--surface));
+  border-bottom: none;
+  color: var(--heading);
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-table th:first-child {
+  border-top-left-radius: 22px;
+}
+
+.card[data-mode='memo'] .b-table th:last-child {
+  border-top-right-radius: 22px;
+}
+
+.card[data-mode='memo'] .b-table td {
+  padding: 16px 20px;
+  border-bottom: 2px dashed var(--divider);
+}
+
+.card[data-mode='memo'] .b-table tr:last-child td {
+  border-bottom: none;
+}
+
+.card[data-mode='memo'] .b-flow-node {
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .b-flow-no {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-flow-title {
+  font-weight: 700;
+}
+
+.card[data-mode='memo'] .b-flow-text {
+  color: var(--muted);
+}
+
+.card[data-mode='memo'] .b-flow-node.is-hl {
+  background: var(--accent);
+}
+
+.card[data-mode='memo'] .b-flow-arrow {
+  stroke: var(--accent-ink);
+}
+
+.card[data-mode='memo'] .b-chart-title {
+  color: var(--heading);
+  font-weight: 700;
+  border-bottom: 2px dashed var(--divider);
+}
+
+.card[data-mode='memo'] .b-bar {
+  border-bottom: 2px dashed var(--divider);
+}
+
+.card[data-mode='memo'] .b-bar-fill {
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+.card[data-mode='memo'] .b-chart.has-hl .b-bar-fill {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface));
+}
+
+.card[data-mode='memo'] .b-chart.has-hl .b-bar.is-hl .b-bar-fill {
+  background: var(--accent);
+}
+
+.card[data-mode='memo'] .b-bar-value {
+  font-weight: 700;
+}
+
+/* ---------- 封面 ---------- */
+
+/* 引子写在一截胶带上 */
+.card[data-mode='memo'].cover .cv-kicker {
+  align-self: flex-start;
+  padding: 10px 30px;
+  background: var(--memo-tape);
+  color: var(--on-accent);
+  font-size: 28px;
+  font-weight: 700;
+  clip-path: var(--memo-tape-edge);
+  transform: rotate(-2deg);
+}
+
+.card[data-mode='memo'].cover .cv-title-mark {
+  background: linear-gradient(transparent 60%, var(--marker) 60%);
+}
+
+/* 清单是一张贴在方格纸上的白便签，顶上正中一截胶带，每条之间一道虚线 */
+.card[data-mode='memo'] .cv-check {
+  position: relative;
+  padding: 44px 40px 34px;
+  border-radius: 28px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .cv-check::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 150px;
+  height: 36px;
+  background: var(--memo-tape);
+  clip-path: var(--memo-tape-edge);
+  transform: translateX(-50%) rotate(-2deg);
+}
+
+.card[data-mode='memo'] .cv-check-item {
+  border-bottom: 2px dashed var(--divider);
+}
+
+.card[data-mode='memo'] .cv-check-item::before {
+  border-radius: 9px;
+}
+
+.card[data-mode='memo'] .cv-flow-node {
+  border-radius: 24px;
+  box-shadow: var(--memo-shadow);
+}
+
+.card[data-mode='memo'] .cv-flow-arrow {
+  background: var(--accent-ink);
+  color: var(--surface);
+}
+
+.card[data-mode='memo'] .cv-point {
+  border-top: 2px dashed var(--divider);
+  font-weight: 600;
+}
+
+.card[data-mode='memo'] .cv-point::before {
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.card[data-mode='memo'] .cv-title-bar {
+  border-radius: 18px;
+  padding: 6px 22px 12px;
+}
+
+.card[data-mode='memo'] .cv-chip {
+  border: none;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--heading);
+  box-shadow: var(--memo-shadow);
+}

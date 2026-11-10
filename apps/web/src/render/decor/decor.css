@@ -1,0 +1,44 @@
+/*
+ * 主题装饰层。垫在卡片背景之上、页眉正文页脚之下，颜色全部取主题变量，换强调色时跟着变。
+ * 图形自己不带颜色，靠下面这几个类上色：f- 是填充，s- 是描边。
+ */
+
+.c-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.card > .c-head,
+.card > .c-body,
+.card > .c-foot,
+.card > .cv-body {
+  position: relative;
+  z-index: 1;
+}
+
+.c-decor .dc {
+  position: absolute;
+  overflow: visible;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.c-decor .f-accent { fill: var(--accent); }
+.c-decor .f-accent-ink { fill: var(--accent-ink); }
+.c-decor .f-ink { fill: var(--heading); }
+.c-decor .f-bg { fill: var(--bg); }
+.c-decor .f-surface { fill: var(--surface); }
+.c-decor .f-marker { fill: var(--marker); }
+.c-decor .s-accent { stroke: var(--accent); }
+.c-decor .s-accent-ink { stroke: var(--accent-ink); }
+.c-decor .s-ink { stroke: var(--heading); }
+.c-decor .s-muted { stroke: var(--muted); }
+
+.c-decor .o-faint { opacity: 0.34; }
+.c-decor .o-trace { opacity: 0.62; }
+.c-decor .dc-glow {
+  filter: drop-shadow(0 0 6px var(--accent));
+}

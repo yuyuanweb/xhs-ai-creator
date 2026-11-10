@@ -1,0 +1,399 @@
+/*
+ * 暗夜：深色底、霓虹强调色、终端窗口和等宽小字。
+ * 组件是比底色亮一档的深灰块加一道细边；强调色只点亮要看的那一处——序号、数字、高亮的那张卡，
+ * 点亮的地方带一圈很淡的辉光。整页铺满亮色会刺眼，也会让「哪里重要」失焦。
+ */
+
+.card[data-mode='neon'] {
+  --neon-glow: 0 0 28px -4px color-mix(in srgb, var(--accent) 55%, transparent);
+  --neon-line: 1px solid var(--divider);
+  background-image: radial-gradient(ellipse 70% 42% at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%);
+}
+
+/* ---------- 页眉页脚：像一扇终端窗口的标题栏，左边三颗红黄绿圆点 ---------- */
+
+.card[data-mode='neon'] .c-head {
+  position: relative;
+  align-items: center;
+  padding: 0 0 8px 82px;
+  border-top: none;
+  border-bottom: var(--neon-line);
+  font-family: var(--code-font);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.card[data-mode='neon'] .c-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(50% - 11px);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow:
+    24px 0 #febc2e,
+    48px 0 #28c840;
+}
+
+.card[data-mode='neon'] .c-byline {
+  color: var(--heading);
+}
+
+.card[data-mode='neon'] .c-foot {
+  border-top: var(--neon-line);
+  font-family: var(--code-font);
+  font-size: 19px;
+}
+
+.card[data-mode='neon'] .c-page {
+  color: var(--accent);
+}
+
+/* ---------- 基础块 ---------- */
+
+/* 标题上方一截发光的短横，相当于终端里的光标 */
+.card[data-mode='neon'] .b-h2 {
+  font-size: calc(var(--fs) * 1.6);
+  line-height: 1.26;
+}
+
+.card[data-mode='neon'] .b-h2::before {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 6px;
+  margin-bottom: 24px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-quote {
+  padding: 18px 26px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.card[data-mode='neon'] .b-ul li::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-ol li::before {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-code {
+  border: var(--neon-line);
+  border-radius: 14px;
+}
+
+.card[data-mode='neon'] .b-lang {
+  color: var(--accent);
+}
+
+/* 加粗词压一道半透明的霓虹色，关掉荧光笔时改成直接用强调色 */
+.card[data-mode='neon'] .c-strong {
+  color: var(--heading);
+}
+
+.card[data-mode='neon'].no-marker .c-strong {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .c-icode {
+  border: var(--neon-line);
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .c-link {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-img img {
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- 组件 ---------- */
+
+.card[data-mode='neon'] .b-step {
+  border-top: 1px dashed var(--divider);
+}
+
+.card[data-mode='neon'] .b-step-no {
+  font-family: var(--code-font);
+  font-size: calc(var(--fs) * 0.78);
+  font-weight: 500;
+  color: var(--accent);
+  text-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-step-text {
+  color: var(--muted);
+}
+
+/* 大数字：每格一块深灰底细边框，第一格描一圈强调色并发光 */
+.card[data-mode='neon'] .b-stat,
+.card[data-mode='neon'] .b-stat:nth-child(1),
+.card[data-mode='neon'] .b-stat:nth-child(2) {
+  background: var(--surface);
+  color: var(--heading);
+  border: var(--neon-line);
+  border-radius: 16px;
+}
+
+.card[data-mode='neon'] .b-stat:nth-child(1) {
+  border-color: var(--accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-stat-label {
+  font-family: var(--code-font);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.card[data-mode='neon'] .b-stat-value {
+  font-weight: 700;
+}
+
+.card[data-mode='neon'] .b-stat:nth-child(1) .b-stat-value {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-stat-text {
+  color: var(--text);
+}
+
+.card[data-mode='neon'] .b-card {
+  background: var(--surface);
+  border: var(--neon-line);
+  border-radius: 16px;
+}
+
+.card[data-mode='neon'] .b-card-label {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-card-text {
+  color: var(--muted);
+}
+
+.card[data-mode='neon'] .b-card.is-hl {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border-color: var(--accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-card.is-hl .b-card-label {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-card.is-hl .b-card-title {
+  color: var(--heading);
+}
+
+.card[data-mode='neon'] .b-card.is-hl .b-card-text {
+  color: var(--text);
+}
+
+.card[data-mode='neon'] .b-callout {
+  border-radius: 14px;
+}
+
+.card[data-mode='neon'] .b-callout-label {
+  font-family: var(--code-font);
+  font-weight: 500;
+}
+
+.card[data-mode='neon'] .b-callout.t-accent {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-left: 4px solid var(--accent);
+  color: var(--heading);
+  font-weight: 400;
+}
+
+.card[data-mode='neon'] .b-callout.t-accent .b-callout-label {
+  color: var(--accent);
+}
+
+/* 压轴金句：一块描着强调色、往外发光的面板 */
+.card[data-mode='neon'] .b-callout.t-dark {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface) 70%);
+  border: 1px solid var(--accent);
+  box-shadow: var(--neon-glow);
+  color: var(--heading);
+  font-weight: 500;
+}
+
+.card[data-mode='neon'] .b-callout.t-dark .c-strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.card[data-mode='neon'] .b-callout.t-warn {
+  background: color-mix(in srgb, var(--warn) 9%, var(--surface));
+  border-left: 4px solid var(--warn);
+}
+
+.card[data-mode='neon'] .b-table th {
+  font-family: var(--code-font);
+  color: var(--accent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.card[data-mode='neon'] .b-flow-node {
+  border: var(--neon-line);
+  border-radius: 14px;
+}
+
+.card[data-mode='neon'] .b-flow-no {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-flow-text {
+  color: var(--muted);
+}
+
+.card[data-mode='neon'] .b-flow-arrow {
+  stroke: var(--accent);
+}
+
+.card[data-mode='neon'] .b-flow-node.is-hl {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: var(--accent);
+  box-shadow: var(--neon-glow);
+  color: var(--heading);
+}
+
+.card[data-mode='neon'] .b-flow-node.is-hl .b-flow-no {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .b-flow-node.is-hl .b-flow-text {
+  color: var(--text);
+}
+
+.card[data-mode='neon'] .b-chart-title {
+  font-family: var(--code-font);
+  font-weight: 500;
+  border-bottom: var(--neon-line);
+}
+
+.card[data-mode='neon'] .b-bar-fill,
+.card[data-mode='neon'] .b-chart.has-hl .b-bar.is-hl .b-bar-fill {
+  border-radius: 0 4px 4px 0;
+  background: var(--accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .b-chart.has-hl .b-bar-fill {
+  background: color-mix(in srgb, var(--heading) 16%, var(--surface));
+  box-shadow: none;
+}
+
+.card[data-mode='neon'] .b-bar-value {
+  font-family: var(--code-font);
+}
+
+.card[data-mode='neon'] .b-bar.is-hl .b-bar-value {
+  color: var(--accent);
+}
+
+/* ---------- 封面 ---------- */
+
+/* 引子是一行命令：等宽字、细框，前面一个提示符 */
+.card[data-mode='neon'].cover .cv-kicker {
+  align-self: flex-start;
+  padding: 10px 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+  font-family: var(--code-font);
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.card[data-mode='neon'].cover .cv-kicker::before {
+  content: '$ ';
+  opacity: 0.6;
+}
+
+/* 标题末行直接换成强调色并发光，不压荧光笔 */
+.card[data-mode='neon'] .cv-title-mark,
+.card[data-mode='neon'].no-marker .cv-title-mark {
+  background: none;
+  color: var(--accent);
+  text-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .cv-lead {
+  color: var(--text);
+}
+
+.card[data-mode='neon'] .cv-flow-node {
+  border: var(--neon-line);
+  border-radius: 18px;
+}
+
+.card[data-mode='neon'] .cv-flow-node:last-child {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: var(--accent);
+  box-shadow: var(--neon-glow);
+  color: var(--heading);
+}
+
+.card[data-mode='neon'] .cv-flow-arrow {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .cv-point {
+  border-top: 1px dashed var(--divider);
+}
+
+.card[data-mode='neon'] .cv-point::before {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .cv-stats {
+  border-top: var(--neon-line);
+}
+
+.card[data-mode='neon'].cover .cv-stat:first-child .cv-stat-value {
+  color: var(--accent);
+}
+
+.card[data-mode='neon'] .cv-check {
+  border: var(--neon-line);
+  border-radius: 20px;
+}
+
+.card[data-mode='neon'] .cv-check-item::before {
+  border-radius: 7px;
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .cv-title-bar {
+  border-radius: 12px;
+  box-shadow: var(--neon-glow);
+}
+
+.card[data-mode='neon'] .cv-chip {
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 99px;
+  color: var(--accent);
+  font-family: var(--code-font);
+  font-weight: 500;
+}

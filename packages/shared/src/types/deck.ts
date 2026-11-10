@@ -14,6 +14,8 @@ export type ComponentKind = 'steps' | 'stats' | 'cards' | 'callout' | 'table' | 
 
 export type CardBlockKind = BlockKind | ComponentKind;
 
+export const COMPONENT_KINDS: ComponentKind[] = ['steps', 'stats', 'cards', 'callout', 'table', 'flow', 'chart'];
+
 /**
  * 组件里的一项。字段按组件取用：
  * steps / flow 用 title + text；stats 用 label + value + text；cards 用 label + title + text；

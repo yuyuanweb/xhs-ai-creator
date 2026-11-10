@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { Deck, SourceArticle } from '@rcs/shared';
+import { buildArticleIndex, type Deck, type SourceArticle } from '@rcs/shared';
 import { articleApi, deckApi } from '../api/endpoints';
+import { useDeckEditor } from '../editor/useDeckEditor';
+import { useDeckLayout } from '../layout/useDeckLayout';
+import { Measurer } from '../render/Measurer';
+import { CardStudio } from '../components/CardStudio';
 import { Empty } from '../ui/Empty';
 import { Icon } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
@@ -32,24 +36,13 @@ export function EditorPage() {
   if (error) return <EditorFallback error={error} />;
   if (!deck || !article) return <EditorFallback />;
 
-  const missing = article.images.filter((img) => !img.url).length;
   return (
-    <div className="editor-fallback">
-      <Empty
-        icon="layers"
-        title={article.title}
-        text={`已解析出 ${article.blocks.length} 个内容块、${article.images.length} 张配图${missing ? `，其中 ${missing} 张没抓取成功` : ''}。卡片渲染接入后，这里就是编辑台。`}
-      />
-      {missing ? (
-        <button className="btn" onClick={() => void articleApi.retryImages(article.id).then(setArticle)}>
-          重新抓取配图
-        </button>
-      ) : null}
-      <Link to="/" className="btn">
-        <Icon name="back" />
-        返回文章列表
-      </Link>
-    </div>
+    <Workspace
+      key={deck.id}
+      initial={deck}
+      article={article}
+      onRetryImages={async () => setArticle(await articleApi.retryImages(article.id))}
+    />
   );
 }
 
@@ -69,5 +62,41 @@ function EditorFallback({ error }: { error?: string }) {
         返回文章列表
       </Link>
     </div>
+  );
+}
+
+function Workspace({
+  initial,
+  article,
+  onRetryImages,
+}: {
+  initial: Deck;
+  article: SourceArticle;
+  onRetryImages: () => Promise<void>;
+}) {
+  const editor = useDeckEditor(initial);
+  const index = useMemo(() => buildArticleIndex(article), [article]);
+  const { images } = index;
+  const layout = useDeckLayout(editor.deck);
+
+  return (
+    <>
+      <CardStudio
+        deck={editor.deck}
+        article={article}
+        images={images}
+        layout={layout}
+        updateDeck={editor.updateDeck}
+        save={{ state: editor.saveState, retry: editor.retrySave }}
+        onRetryImages={onRetryImages}
+      />
+      {/* 测高容器必须始终挂载，否则分页永远拿不到高度 */}
+      <Measurer
+        blocks={layout.activeBlocks}
+        images={images}
+        settings={editor.deck.settings}
+        onMeasure={layout.onMeasure}
+      />
+    </>
   );
 }

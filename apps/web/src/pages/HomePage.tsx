@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { defaultCover, defaultDeckSettings, type SourceImage } from '@rcs/shared';
 import { articleApi, deckApi, libraryApi, type LibraryItem } from '../api/endpoints';
 import { useFilePicker } from '../components/CreateDialog';
+import { CoverCard } from '../render/CoverCard';
+import { ScaledCard } from '../render/ScaledCard';
 import { useAuth } from '../store/auth';
 import { useCreate, useCreateArticle } from '../store/create';
 import { Empty } from '../ui/Empty';
@@ -271,9 +274,21 @@ function WorkStatus({ item }: { item: LibraryItem }) {
   return <span>已生成 ·</span>;
 }
 
-/** 作品封面。卡片渲染接入前先印文章标题，网格照样整齐 */
+/** 作品封面。没生成过的稿子也画一张默认封面，网格才整齐 */
 function CoverThumb({ item }: { item: LibraryItem }) {
-  return <div className="fan-card is-blank">{item.title}</div>;
+  const images = useMemo(() => new Map<string, SourceImage>(item.coverImages.map((img) => [img.id, img])), [item.coverImages]);
+  const settings = item.deck?.settings ?? defaultDeckSettings();
+  return (
+    <ScaledCard>
+      <CoverCard
+        cover={item.deck?.cover ?? defaultCover(item.title)}
+        settings={{ ...settings, showPageNumber: false }}
+        total={1}
+        overlays={item.deck?.overlays ?? []}
+        images={images}
+      />
+    </ScaledCard>
+  );
 }
 
 /** 拖着 Markdown 文件进到首页任意位置，就给出整页的放下提示 */

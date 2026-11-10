@@ -1,0 +1,442 @@
+/*
+ * 波普：奶油底、粗黑描边、硬投影、撞色块（新粗野主义）。
+ * 每个组件都是一块描黑边、往右下投一道实心影子的「贴纸」，强调色整块整块地铺。
+ *
+ * 正文区会裁掉溢出的部分，满宽的组件往右投的影子会被切掉，
+ * 所以带影子的组件都在右边让出影子的宽度。测高走的是同一份样式，让出的宽度会被如实量进去。
+ */
+
+.card[data-mode='pop'] {
+  --pop-line: 3px solid var(--heading);
+  --pop-offset: 6px;
+  --pop-shadow: var(--pop-offset) var(--pop-offset) 0 var(--heading);
+  --pop-shadow-sm: 3px 3px 0 var(--heading);
+}
+
+/* ---------- 页眉页脚：署名是一枚黑色胶囊，话题是描边胶囊 ---------- */
+
+.card[data-mode='pop'] .c-head {
+  align-items: center;
+  border-top: none;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .c-byline,
+.card[data-mode='pop'] .c-topic {
+  padding: 4px 18px;
+  border: 2.5px solid var(--heading);
+  border-radius: 99px;
+}
+
+.card[data-mode='pop'] .c-byline {
+  background: var(--heading);
+  color: var(--bg);
+}
+
+.card[data-mode='pop'] .c-topic {
+  background: var(--surface);
+}
+
+.card[data-mode='pop'] .c-byline:empty,
+.card[data-mode='pop'] .c-topic:empty {
+  display: none;
+}
+
+.card[data-mode='pop'] .c-foot {
+  border-top: var(--pop-line);
+  color: var(--heading);
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .c-page {
+  padding: 1px 14px;
+  border: 2.5px solid var(--heading);
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* ---------- 基础块 ---------- */
+
+/* 标题往右下错开一层强调色的字影，像丝网印刷套色没对准 */
+.card[data-mode='pop'] .b-h2 {
+  font-size: calc(var(--fs) * 1.64);
+  line-height: 1.24;
+  letter-spacing: 0;
+  text-shadow: 4px 4px 0 var(--accent);
+}
+
+.card[data-mode='pop'] .b-h3 {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .c-strong {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-quote {
+  margin-right: var(--pop-offset);
+  padding: 18px 26px;
+  border: var(--pop-line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--pop-shadow);
+  font-weight: 600;
+}
+
+.card[data-mode='pop'] .b-ul li::before {
+  left: 6px;
+  top: calc(var(--fs) * 0.62);
+  width: 12px;
+  height: 12px;
+  border: 2.5px solid var(--heading);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.card[data-mode='pop'] .b-ol li::before {
+  font-weight: 800;
+  color: var(--heading);
+}
+
+/* 代码块本身是黑的，黑影子看不出来，换成强调色 */
+.card[data-mode='pop'] .b-code {
+  margin-right: var(--pop-offset);
+  border: var(--pop-line);
+  border-radius: 18px;
+  box-shadow: var(--pop-offset) var(--pop-offset) 0 var(--accent);
+}
+
+.card[data-mode='pop'] .b-lang {
+  color: var(--accent);
+}
+
+.card[data-mode='pop'] .c-icode {
+  padding: 0 8px;
+  border: 2px solid var(--heading);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface));
+}
+
+.card[data-mode='pop'] .b-img img {
+  max-width: calc(100% - var(--pop-offset));
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .b-cap {
+  color: var(--heading);
+  font-weight: 600;
+}
+
+/* ---------- 组件 ---------- */
+
+.card[data-mode='pop'] :is(.b-stats, .b-cards, .b-callout, .b-table, .b-flow, .b-steps) {
+  margin-right: var(--pop-offset);
+}
+
+/* 序号是一枚描边带影子的方块 */
+.card[data-mode='pop'] .b-step {
+  grid-template-columns: calc(var(--fs) * 2) 1fr;
+  align-items: start;
+  padding: 22px 0;
+  border-top: 2.5px solid var(--heading);
+}
+
+.card[data-mode='pop'] .b-step-no {
+  width: calc(var(--fs) * 1.32);
+  height: calc(var(--fs) * 1.32);
+  box-sizing: border-box;
+  border: var(--pop-line);
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--pop-shadow-sm);
+  font-size: calc(var(--fs) * 0.56);
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card[data-mode='pop'] .b-step-title {
+  font-weight: 800;
+}
+
+/* 大数字三格三种底：强调色、黑、白 */
+.card[data-mode='pop'] .b-stats {
+  gap: 18px;
+}
+
+.card[data-mode='pop'] .b-stat {
+  border: var(--pop-line);
+  border-radius: 20px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .b-stat:nth-child(2) {
+  box-shadow: var(--pop-offset) var(--pop-offset) 0 var(--accent);
+}
+
+.card[data-mode='pop'] .b-stat-label {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-stat-value {
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.card[data-mode='pop'] .b-cards {
+  gap: 18px;
+}
+
+.card[data-mode='pop'] .b-card {
+  border: var(--pop-line);
+  border-radius: 20px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .b-card-label {
+  align-self: flex-start;
+  padding: 2px 12px;
+  border-radius: 99px;
+  background: var(--heading);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .b-card-title {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-card.is-hl .b-card-label {
+  background: var(--surface);
+  color: var(--heading);
+}
+
+.card[data-mode='pop'] .b-callout {
+  border: var(--pop-line);
+  border-radius: 20px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .b-callout-label {
+  font-weight: 900;
+}
+
+.card[data-mode='pop'] .b-callout.t-accent {
+  font-weight: 600;
+}
+
+.card[data-mode='pop'] .b-callout.t-dark {
+  box-shadow: var(--pop-offset) var(--pop-offset) 0 var(--accent);
+  font-weight: 500;
+}
+
+.card[data-mode='pop'] .b-callout.t-dark .c-strong {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-callout.t-warn {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+}
+
+.card[data-mode='pop'] .b-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: var(--pop-line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .b-table th {
+  padding: 16px 18px 14px;
+  background: var(--accent);
+  border-bottom: var(--pop-line);
+  color: var(--on-accent);
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-table th:first-child {
+  border-top-left-radius: 17px;
+}
+
+.card[data-mode='pop'] .b-table th:last-child {
+  border-top-right-radius: 17px;
+}
+
+.card[data-mode='pop'] .b-table td {
+  padding: 16px 18px;
+  border-bottom: 2px solid color-mix(in srgb, var(--heading) 14%, transparent);
+}
+
+.card[data-mode='pop'] .b-table td:first-child {
+  color: var(--heading);
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .b-table tr:last-child td {
+  border-bottom: none;
+}
+
+.card[data-mode='pop'] .b-flow-node {
+  border: var(--pop-line);
+  border-radius: 18px;
+  box-shadow: var(--pop-shadow-sm);
+}
+
+.card[data-mode='pop'] .b-flow-no {
+  color: var(--heading);
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .b-flow-title {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .b-flow-arrow {
+  stroke-width: 3.2;
+}
+
+.card[data-mode='pop'] .b-chart-title {
+  color: var(--heading);
+  font-weight: 800;
+  border-bottom: var(--pop-line);
+}
+
+.card[data-mode='pop'] .b-bar {
+  border-bottom: 2px solid color-mix(in srgb, var(--heading) 14%, transparent);
+}
+
+.card[data-mode='pop'] .b-bar-fill {
+  box-sizing: border-box;
+  border: 2.5px solid var(--heading);
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+.card[data-mode='pop'] .b-chart.has-hl .b-bar-fill {
+  background: var(--surface);
+}
+
+.card[data-mode='pop'] .b-chart.has-hl .b-bar.is-hl .b-bar-fill {
+  background: var(--accent);
+  box-shadow: var(--pop-shadow-sm);
+}
+
+.card[data-mode='pop'] .b-bar-value {
+  font-weight: 800;
+}
+
+/* ---------- 封面 ---------- */
+
+/* 引子是一枚歪着贴上去的贴纸 */
+.card[data-mode='pop'].cover .cv-kicker {
+  align-self: flex-start;
+  padding: 10px 26px;
+  border: var(--pop-line);
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 4px 4px 0 var(--heading);
+  font-size: 28px;
+  font-weight: 800;
+  transform: rotate(-2.5deg);
+  transform-origin: left center;
+}
+
+/* 标题末行底下铺一整条实色，比半透明荧光笔更「撞」 */
+.card[data-mode='pop'] .cv-title-mark {
+  background: linear-gradient(transparent 58%, var(--accent) 58%, var(--accent) 92%, transparent 92%);
+}
+
+.card[data-mode='pop'] .cv-lead {
+  font-weight: 500;
+}
+
+.card[data-mode='pop'] .cv-flow,
+.card[data-mode='pop'] .cv-check,
+.card[data-mode='pop'] .cv-points {
+  margin-right: var(--pop-offset);
+}
+
+.card[data-mode='pop'] .cv-flow-node {
+  border: var(--pop-line);
+  border-radius: 22px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .cv-flow-title {
+  font-weight: 800;
+}
+
+.card[data-mode='pop'] .cv-flow-arrow {
+  border: var(--pop-line);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 900;
+}
+
+/* 要点是一格一格描边的小贴纸 */
+.card[data-mode='pop'] .cv-points {
+  column-gap: 20px;
+  row-gap: 16px;
+}
+
+.card[data-mode='pop'] .cv-point {
+  padding: 14px 18px;
+  border: var(--pop-line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 4px 4px 0 var(--heading);
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .cv-point::before {
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+
+.card[data-mode='pop'] .cv-stats {
+  border-top: var(--pop-line);
+}
+
+.card[data-mode='pop'].cover .cv-stat-value {
+  font-weight: 900;
+}
+
+.card[data-mode='pop'] .cv-check {
+  border: var(--pop-line);
+  border-radius: 26px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .cv-check-item {
+  font-weight: 700;
+}
+
+.card[data-mode='pop'] .cv-check-item::before {
+  box-sizing: border-box;
+  border: var(--pop-line);
+  border-radius: 9px;
+}
+
+.card[data-mode='pop'] .cv-title-bar {
+  border: 4px solid var(--heading);
+  border-radius: 20px;
+  box-shadow: var(--pop-shadow);
+}
+
+.card[data-mode='pop'] .cv-chip {
+  border: var(--pop-line);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--heading);
+  box-shadow: var(--pop-shadow-sm);
+  font-weight: 800;
+}
