@@ -1,0 +1,22 @@
+{
+  "name": "rednote-content-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "长图文转小红书多图卡片：AI 压缩改写 + 真实测高排版 + 人工精修 + 浏览器内导出",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @rcs/web dev",
+    "dev:server": "pnpm --filter @rcs/server dev",
+    "build": "pnpm --filter @rcs/shared build && pnpm -r --filter \"./apps/*\" build",
+    "start": "pnpm --filter @rcs/server start",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

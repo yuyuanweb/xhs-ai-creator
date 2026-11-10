@@ -1,0 +1,72 @@
+# 本地素材，不入库
+/素材/
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+*firebase*adminsdk*.json
+secrets/
+.secrets/
+
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+vendor/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.python-version
+.pnpm-store/
+
+# 构建产物
+dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
+.cache/
+.parcel-cache/
+coverage/
+*.tsbuildinfo
+
+# 日志与临时文件
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.iml
+
+# 转存的原文配图等运行时产物。必须写全路径，否则会连 src/storage 源码目录一起忽略掉
+/apps/server/storage/
+/uploads/
+*.local
