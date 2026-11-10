@@ -49,6 +49,11 @@ export interface CoverCardProps {
 }
 
 export function CoverCard({ cover, settings, total, live, overlays, overlayLive, images }: CoverCardProps) {
+  const art = cover.imageId ? images?.get(cover.imageId) : undefined;
+  if (art?.url) {
+    return <ArtCover image={art} settings={settings} live={live} overlays={overlays} overlayLive={overlayLive} images={images} />;
+  }
+
   const theme = findTheme(settings.themeId);
   const variant = theme.coverVariants.includes(cover.variant) ? cover.variant : theme.coverVariants[0]!;
   const edit = coverEditor(live);
@@ -93,6 +98,32 @@ export function CoverCard({ cover, settings, total, live, overlays, overlayLive,
         ) : null}
       </div>
       {foot}
+      <OverlayLayer overlays={overlays ?? []} images={images ?? new Map()} live={overlayLive} />
+    </div>
+  );
+}
+
+/** AI 画的整张封面：字和画面都在图里，卡片上只叠装饰，不印页眉页脚 */
+function ArtCover({
+  image,
+  settings,
+  live,
+  overlays,
+  overlayLive,
+  images,
+}: Pick<CoverCardProps, 'settings' | 'live' | 'overlays' | 'overlayLive' | 'images'> & { image: SourceImage }) {
+  const theme = findTheme(settings.themeId);
+  return (
+    <div
+      className={`card cover is-art${live ? ' is-live' : ''}`}
+      data-mode={theme.mode}
+      style={themeVars(theme, settings)}
+      onClick={() => {
+        live?.onSelect?.(null);
+        overlayLive?.onSelect?.(null);
+      }}
+    >
+      <img className="cv-art" src={image.url} alt="" />
       <OverlayLayer overlays={overlays ?? []} images={images ?? new Map()} live={overlayLive} />
     </div>
   );

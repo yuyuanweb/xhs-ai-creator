@@ -1,4 +1,4 @@
-import type { BlockKind } from './source.js';
+import type { BlockKind, SourceArticle } from './source.js';
 
 /**
  * 分页意图。break = 该块前强制换页；join = 必须跟上一块同页。
@@ -99,6 +99,24 @@ export interface CoverSpec {
   /** digest 变体最下方的一句全篇概述 */
   note?: string;
   variant: CoverVariant;
+  /** AI 画的整张封面图（SourceImage.id）。有它时封面只印这张图和装饰，上面的文字字段留着，切回排版封面还在 */
+  imageId?: string;
+}
+
+/** 让 AI 画一张 3:4 的封面图 */
+export interface CoverArtRequest {
+  /** 印在图上的大字，用换行断行 */
+  title: string;
+  /** 画面主体。不填时模型按文章内容自己挑 */
+  subject?: string;
+  /** 参考图（SourceImage.id），比如本人照片、产品图 */
+  referenceIds?: string[];
+}
+
+export interface CoverArtResult {
+  article: SourceArticle;
+  /** 这一次新画的几张，按生成顺序 */
+  imageIds: string[];
 }
 
 /** 浮在页面上的装饰，不参与测高分页 */

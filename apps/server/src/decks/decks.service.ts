@@ -86,7 +86,7 @@ export class DecksService {
       const row = r.decks[0];
       const deck = row ? toDeck(row) : null;
       const coverOverlays = deck?.overlays?.filter((o) => o.anchor === 'cover') ?? [];
-      const used = new Set(coverOverlays.map((o) => o.imageId).filter(Boolean));
+      const used = new Set([deck?.cover.imageId, ...coverOverlays.map((o) => o.imageId)].filter(Boolean));
       return {
         articleId: r.id,
         title: r.title,

@@ -10,6 +10,8 @@ import type {
   SourceImage,
   CardBlock,
   ContentType,
+  CoverArtRequest,
+  CoverArtResult,
   CoverSpec,
   AiSnapshot,
   PageOverlay,
@@ -99,6 +101,7 @@ export const deckApi = {
   remove: (id: string) => api.del<{ ok: boolean }>(`/decks/${id}`),
   uploadLayout: (id: string, upload: LayoutUpload) => api.put<{ ok: boolean }>(`/decks/${id}/layout`, upload),
   sync: (id: string) => api.get<DeckSync>(`/decks/${id}/sync`),
+  generateCoverArt: (id: string, req: CoverArtRequest) => api.post<CoverArtResult>(`/decks/${id}/cover-art`, req),
 };
 
 export const agentApi = {

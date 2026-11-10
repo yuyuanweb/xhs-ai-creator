@@ -624,6 +624,119 @@
   cursor: not-allowed;
 }
 
+.picks .pick {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--w-raise);
+  box-shadow: inset 0 0 0 1px var(--w-line);
+}
+
+.picks .pick-face,
+.picks .pick.is-add {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: none;
+}
+
+.picks .pick-face:disabled,
+.picks .pick.is-add.is-off {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.picks .pick-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1.5px solid rgba(24, 24, 27, 0.35);
+  border-radius: 3px;
+  background: #fff;
+  color: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.picks .pick-check::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.picks .pick.is-on .pick-check {
+  border-color: var(--w-select);
+  background: var(--w-select);
+}
+
+.picks .pick-check svg {
+  display: block;
+}
+
+.picks .pick-check:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.picks .pick.is-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--w-dim);
+  box-shadow: none;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.picks .pick.is-add:hover:not(.is-off) {
+  color: var(--ink);
+  background: var(--w-raise);
+}
+
+.picks.is-scroll {
+  max-height: 176px;
+  overflow-y: auto;
+  padding: 4px;
+  margin: 8px -4px 0;
+}
+
+.picks.is-portrait {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.picks.is-portrait button {
+  aspect-ratio: 3 / 4;
+}
+
+.pane-sub {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.pane-sub span {
+  color: var(--w-dim);
+}
+
+.art-go {
+  width: 100%;
+  margin-top: 14px;
+}
+
 /* ---------- 画布 ---------- */
 
 .st-view {

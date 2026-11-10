@@ -233,8 +233,10 @@ function blockFingerprint(b: CardBlock): string {
   return JSON.stringify(rest);
 }
 
+/** 换封面图不算改了文案，不该让「重新生成」把封面标成人工改过 */
 function coverFingerprint(c: CoverSpec): string {
-  return JSON.stringify(c);
+  const { imageId: _imageId, ...text } = c;
+  return JSON.stringify(text);
 }
 
 function clampPct(n: unknown, fallback: number): number {

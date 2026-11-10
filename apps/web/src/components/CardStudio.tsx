@@ -22,6 +22,7 @@ import {
 import { articleApi, agentApi } from '../api/endpoints';
 import type { UseAgentResult } from '../agent/useAgent';
 import type { DeckHistory, SaveState, UpdateDeck } from '../editor/useDeckEditor';
+import { useCoverArt } from '../editor/useCoverArt';
 import type { DeckLayout } from '../layout/useDeckLayout';
 import { plainText } from '../render/inline';
 import { buildSlots, CardStrip } from '../render/DeckCards';
@@ -92,6 +93,7 @@ export function CardStudio({
   const [overlayId, setOverlayId] = useState<string | null>(null);
   const [view, setView] = useState<'canvas' | 'grid'>('canvas');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const coverArt = useCoverArt(deck.id, onArticleChange, updateDeck);
 
   const total = layout.pages.length + 1;
   const maxIndex = Math.max(0, total - 1);
@@ -586,6 +588,7 @@ export function CardStudio({
               onArticleChange(next);
               return next;
             },
+            coverArt,
           }}
         />
 

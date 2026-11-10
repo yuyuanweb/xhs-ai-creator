@@ -12,11 +12,13 @@ import {
   type SourceArticle,
   type SourceImage,
 } from '@rcs/shared';
-import { DECOR_EMOJIS, DECOR_ICONS, isUploadImage } from '@rcs/shared';
+import { DECOR_EMOJIS, DECOR_ICONS, isCoverArt, isUploadImage } from '@rcs/shared';
+import type { CoverArt } from '../../editor/useCoverArt';
 import { plainText } from '../../render/inline';
 import { Icon, type IconName } from '../../ui/icons';
 import { SettingsPanel } from '../SettingsPanel';
 import { AgentLockNote } from './AgentStatus';
+import { CoverArtPanel } from './CoverArtPanel';
 
 export type InspectorTab = 'style' | 'page' | 'stuff';
 
@@ -47,6 +49,7 @@ export interface InspectorActions {
   onDeletePage?: () => void;
   onAddOverlay?: (partial: { kind: OverlayKind; emoji?: string; icon?: string; imageId?: string }) => void;
   onUpload?: (file: File) => Promise<SourceArticle | void>;
+  coverArt?: CoverArt;
 }
 
 const PANEL_TITLES: Record<InspectorTab, { title: string; sub: string }> = {
@@ -113,6 +116,7 @@ function PageTab({
 }) {
   const { selected } = page;
   const blocks = page.blockIds.map((id) => layoutBlocks.get(id)).filter((b): b is CardBlock => Boolean(b));
+  const artCover = page.isCover && Boolean(deck.cover.imageId);
 
   return (
     <div className="pane" aria-disabled={disabled}>
@@ -125,12 +129,16 @@ function PageTab({
           <PageHealth fill={page.fill} overflow={page.overflow} />
         ) : (
           <p className="pane-hint">
-            封面上的字都能点开直接改，改成空就去掉这一项。
+            {artCover ? '现在用的是 AI 封面图，切回排版封面才能改卡片上的字。' : '封面上的字都能点开直接改，改成空就去掉这一项。'}
           </p>
         )}
       </section>
 
-      {page.isCover ? (
+      {page.isCover && actions.coverArt ? (
+        <CoverArtPanel cover={deck.cover} images={images} disabled={disabled} art={actions.coverArt} onUpload={actions.onUpload} />
+      ) : null}
+
+      {page.isCover && !artCover ? (
         <section className="pane-sec">
           <h3>封面元素</h3>
           <div className="pane-acts">
@@ -434,10 +442,11 @@ function ImagePicks({
   selectedId?: string;
   onPick: (id: string) => void;
 }) {
-  if (!images.length) return null;
+  const picks = images.filter((img) => !isCoverArt(img));
+  if (!picks.length) return null;
   return (
     <div className="picks">
-      {images.map((img) => (
+      {picks.map((img) => (
         <button key={img.id} type="button" className={img.id === selectedId ? 'is-on' : ''} onClick={() => onPick(img.id)}>
           <img src={img.url} alt="" />
         </button>

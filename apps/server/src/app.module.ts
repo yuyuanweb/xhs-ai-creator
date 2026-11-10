@@ -7,6 +7,7 @@ import { DecksModule } from './decks/decks.module';
 import { PromptsModule } from './prompts/prompts.module';
 import { LlmModule } from './llm/llm.module';
 import { StorageModule } from './storage/storage.module';
+import { CoverArtModule } from './cover-art/cover-art.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { StorageModule } from './storage/storage.module';
     DecksModule,
     PromptsModule,
     LlmModule,
+    CoverArtModule,
   ],
 })
 export class AppModule {}

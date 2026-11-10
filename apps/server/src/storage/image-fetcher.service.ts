@@ -17,6 +17,15 @@ const EXT_BY_MIME: Record<string, string> = {
   'image/avif': 'avif',
 };
 
+const MIME_BY_EXT: Record<string, string> = Object.fromEntries(
+  Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime]),
+);
+
+export interface StoredImage {
+  data: Buffer;
+  mime: string;
+}
+
 @Injectable()
 export class ImageFetcherService {
   private readonly logger = new Logger(ImageFetcherService.name);
@@ -65,5 +74,13 @@ export class ImageFetcherService {
     const key = `images/${createHash('sha1').update(buf).digest('hex')}.${ext}`;
     if (!(await this.storage.exists(key))) await this.storage.save(key, buf);
     return { url: this.storage.urlOf(key), width: dim.width, height: dim.height };
+  }
+
+  /** 读回已转存图片的字节，给需要把图交给模型看的场景用 */
+  async readStored(url: string): Promise<StoredImage> {
+    const key = this.storage.keyOf(url);
+    if (!key || !(await this.storage.exists(key))) throw new BadRequestException('这张图的本地副本不存在');
+    const ext = key.split('.').pop()?.toLowerCase() ?? '';
+    return { data: await this.storage.read(key), mime: MIME_BY_EXT[ext] ?? 'image/jpeg' };
   }
 }

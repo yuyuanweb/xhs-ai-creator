@@ -8,9 +8,14 @@ const CAPTION_MAX = 40;
 
 /** 不是原文里的图时，origin 只是个来源记号，不是能重新抓取的地址 */
 const UPLOAD_PREFIX = 'upload:';
+const COVER_ART_PREFIX = 'cover-art:';
 
 export function uploadOrigin(fileName: string): string {
   return `${UPLOAD_PREFIX}${fileName || 'image'}`;
+}
+
+export function coverArtOrigin(): string {
+  return `${COVER_ART_PREFIX}${new Date().toISOString()}`;
 }
 
 /** 在编辑台里自己上传的图 */
@@ -18,12 +23,17 @@ export function isUploadImage(img: SourceImage): boolean {
   return img.origin.startsWith(UPLOAD_PREFIX);
 }
 
+/** AI 画的封面图 */
+export function isCoverArt(img: SourceImage): boolean {
+  return img.origin.startsWith(COVER_ART_PREFIX);
+}
+
 /**
  * 能上卡片的原文配图：抓取成功且不是小图。尺寸没量到的不拦。
- * 上传图不是原文的证据，不能交给模型当截图用
+ * 上传图和 AI 封面图不是原文的证据，不能交给模型当截图用
  */
 export function isShot(img: SourceImage | undefined): img is SourceImage {
-  if (!img?.url || isUploadImage(img)) return false;
+  if (!img?.url || isUploadImage(img) || isCoverArt(img)) return false;
   if (!img.width || !img.height) return true;
   return Math.max(img.width, img.height) >= SHOT_MIN_SIDE;
 }

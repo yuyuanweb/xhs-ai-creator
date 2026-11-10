@@ -63,7 +63,7 @@ export class ArticlesService {
 
   /**
    * 存下几张新图并挂到文章上。先存文件再读文章、一次写库：
-   * 存图期间用户可能又上传了图，读早了会把那张覆盖掉
+   * 生图要等几十秒，期间用户可能又上传了图，读早了会把那张覆盖掉
    */
   async attachImages(
     id: string,

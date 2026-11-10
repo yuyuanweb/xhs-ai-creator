@@ -70,3 +70,6 @@ temp/
 /apps/server/storage/
 /uploads/
 *.local
+
+# 固定出镜人的照片属于个人信息，放在本地，不进仓库
+apps/server/assets/cover-host.png

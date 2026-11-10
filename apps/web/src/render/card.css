@@ -111,6 +111,20 @@
   z-index: 4;
 }
 
+/* AI 封面图铺满整张卡片，比例和卡片一样是 3:4 */
+.card.is-art {
+  padding: 0;
+}
+
+.cv-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .c-sticker {
   position: absolute;
   display: flex;
