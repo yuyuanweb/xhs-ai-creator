@@ -14,7 +14,9 @@
     "dev:server": "pnpm --filter @rcs/server dev",
     "build": "pnpm --filter @rcs/shared build && pnpm -r --filter \"./apps/*\" build",
     "start": "pnpm --filter @rcs/server start",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm --filter @rcs/server db:push",
+    "db:studio": "pnpm --filter @rcs/server db:studio"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

@@ -181,3 +181,7 @@ export function FeedbackHost() {
     </>
   );
 }
+
+export function errorText(err: unknown, fallback = '操作失败，请重试'): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
