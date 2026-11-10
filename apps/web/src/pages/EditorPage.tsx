@@ -77,7 +77,7 @@ function Workspace({
   const editor = useDeckEditor(initial);
   const index = useMemo(() => buildArticleIndex(article), [article]);
   const { images } = index;
-  const layout = useDeckLayout(editor.deck);
+  const layout = useDeckLayout(editor.deck, index);
 
   return (
     <>

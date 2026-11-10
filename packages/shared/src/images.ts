@@ -1,3 +1,17 @@
+import type { SourceImage } from './types/source.js';
+
+/** 长边不到这个像素的图多半是表情包、头像、图标，放到卡片上又糊又不像证据 */
+const SHOT_MIN_SIDE = 480;
+
+/**
+ * 能上卡片的原文配图：抓取成功且不是小图。尺寸没量到的不拦。
+ */
+export function isShot(img: SourceImage | undefined): img is SourceImage {
+  if (!img?.url) return false;
+  if (!img.width || !img.height) return true;
+  return Math.max(img.width, img.height) >= SHOT_MIN_SIDE;
+}
+
 /** 图注、「留空」这类写给自己看的备注 */
 const META_PART = /^\s*(图注|图说)\s*[:：]|图注|留空/;
 /** 整段只是一行出处 */

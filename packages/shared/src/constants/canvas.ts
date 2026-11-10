@@ -21,6 +21,9 @@ export const LAYOUT = { HEAD_TOP, HEAD_H, HEAD_GAP, FOOT_GAP, FOOT_H, PAD_BOTTOM
  */
 export const MIN_FILL = 0.76;
 
+/** 导出倍率：1080×1440 @2x = 2160×2880 */
+export const EXPORT_SCALE = 2;
+
 /**
  * 截图高度上限。截图是教程页的证据，给到接近半页才看得清里面的小字；
  * 给得太小，页面下半部分就只剩空白。

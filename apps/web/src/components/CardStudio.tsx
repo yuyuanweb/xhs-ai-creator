@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PAGE_H, PAGE_W, overlaysOnPage, type Deck, type SourceArticle, type SourceImage } from '@rcs/shared';
 import type { SaveState, UpdateDeck } from '../editor/useDeckEditor';
 import type { DeckLayout } from '../layout/useDeckLayout';
+import { buildSlots, CardStrip } from '../render/DeckCards';
 import { ContentCard } from '../render/ContentCard';
 import { CoverCard } from '../render/CoverCard';
 import { Icon } from '../ui/icons';
 import { Spinner } from '../ui/Logo';
+import { ExportBar } from './ExportBar';
 import { DeckOverview } from './studio/DeckOverview';
 import { PageTag, pageLabel } from './studio/PageTag';
 import { PageRail } from './studio/PageRail';
+import { PreviewDialog } from './studio/PreviewDialog';
 import { SaveStatus } from './studio/SaveStatus';
 import { SettingsPanel } from './SettingsPanel';
 
@@ -38,11 +41,13 @@ export function CardStudio({
   onRetryImages: () => Promise<void>;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const syncingRef = useRef(false);
   const [fit, setFit] = useState(0.48);
   const [zoom, setZoom] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
   const [view, setView] = useState<'canvas' | 'grid'>('canvas');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const total = layout.pages.length + 1;
   const maxIndex = Math.max(0, total - 1);
@@ -125,6 +130,11 @@ export function CardStudio({
     return () => window.removeEventListener('keydown', onKey);
   }, [index, maxIndex]);
 
+  const slots = useMemo(
+    () => (layout.measured ? buildSlots(deck, layout.pages, layout.blockMap, images) : []),
+    [deck, layout.measured, layout.pages, layout.blockMap, images],
+  );
+
   const missingImages = article.images.filter((img) => !img.url).length;
 
   const onCanvasScroll = () => {
@@ -163,10 +173,29 @@ export function CardStudio({
           <div className="st-meta">
             <SaveStatus state={save.state} retry={save.retry} />
             <i className="st-dot" />
-            <span>{ready ? `共 ${total} 张` : deck.blocks.length ? '排版中' : '未生成'}</span>
+            <span>{ready ? `共 ${layout.report.totalCards} 张` : deck.blocks.length ? '排版中' : '未生成'}</span>
+            {ready && layout.report.thinPages.length ? (
+              <span className="tag is-warn">{layout.report.thinPages.length} 页偏空</span>
+            ) : null}
+            {ready && layout.report.overflowPages.length ? (
+              <span className="tag is-bad">{layout.report.overflowPages.length} 页装不下</span>
+            ) : null}
+            {ready && !layout.report.thinPages.length && !layout.report.overflowPages.length ? (
+              <span className="tag is-ok">
+                <Icon name="check" size={11} />
+                排版达标
+              </span>
+            ) : null}
           </div>
         </div>
 
+        <div className="st-acts">
+          <button type="button" className="sb" disabled={!ready} onClick={() => setPreviewOpen(true)} title="按小红书手机界面预览">
+            <Icon name="phone" />
+            预览
+          </button>
+          <ExportBar article={article} stripRef={stripRef} ready={ready && slots.length > 0} />
+        </div>
       </header>
 
       {missingImages > 0 ? (
@@ -318,6 +347,13 @@ export function CardStudio({
         </div>
       </div>
 
+      <div className="export-source" ref={stripRef} aria-hidden>
+        <CardStrip slots={slots} />
+      </div>
+
+      {previewOpen ? (
+        <PreviewDialog deck={deck} images={images} layout={layout} total={total} onClose={() => setPreviewOpen(false)} />
+      ) : null}
     </div>
   );
 }

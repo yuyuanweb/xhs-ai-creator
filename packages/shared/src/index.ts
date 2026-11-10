@@ -8,5 +8,6 @@ export * from './themes.js';
 export * from './defaults.js';
 export * from './blocks.js';
 export * from './images.js';
+export * from './outline.js';
 export * from './article-index.js';
 export * from './overlays.js';

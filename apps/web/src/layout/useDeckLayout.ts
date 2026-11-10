@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { CardBlock, Deck, LayoutPage } from '@rcs/shared';
+import type { ArticleIndex, CardBlock, Deck, LayoutPage, LayoutReport } from '@rcs/shared';
 import { EMPTY_MEASUREMENTS, type Measurements } from '../render/Measurer';
 import { paginate } from './paginate';
+import { buildReport, imageUsage } from './report';
 
 export interface DeckLayout {
   activeBlocks: CardBlock[];
   blockMap: Map<string, CardBlock>;
   pages: LayoutPage[];
+  report: LayoutReport;
   /** 测高落定前不要渲染卡片，否则会闪一屏错误的分页 */
   measured: boolean;
   /** 高度和当前内容、字号完全对得上。Agent 只能读这时的体检结果，否则改了文字拿到的还是旧分页 */
@@ -26,10 +28,11 @@ function metricsKeyOf(deck: Deck): string {
 }
 
 /**
- * 排版的单一入口：测高结果进来，分页结果出去。
- * 画布、页面导航和总览都读这里的输出，所以各处看到的分页永远一致。
+ * 排版的单一入口：测高结果进来，分页和体检结果出去。
+ * 编辑器预览、AI 生成后的体检、导出三条路径都读这里的输出，
+ * 所以不存在「预览一个样、导出另一个样」的可能。
  */
-export function useDeckLayout(deck: Deck): DeckLayout {
+export function useDeckLayout(deck: Deck, source: ArticleIndex): DeckLayout {
   const metricsKey = metricsKeyOf(deck);
   const [cache, setCache] = useState<MeasureCache>({ key: metricsKey, blocks: null, ...EMPTY_MEASUREMENTS });
 
@@ -39,6 +42,7 @@ export function useDeckLayout(deck: Deck): DeckLayout {
   const disabled = useMemo(() => new Set(deck.disabledBlockIds), [deck.disabledBlockIds]);
   const activeBlocks = useMemo(() => deck.blocks.filter((b) => !disabled.has(b.id)), [deck.blocks, disabled]);
   const blockMap = useMemo(() => new Map(deck.blocks.map((b) => [b.id, b])), [deck.blocks]);
+  const usage = useMemo(() => imageUsage(activeBlocks, source), [activeBlocks, source]);
 
   const measured = activeBlocks.length > 0 && activeBlocks.every((b) => heights[b.id] !== undefined);
   const settled = measured && cache.key === metricsKey && cache.blocks === activeBlocks;
@@ -46,6 +50,11 @@ export function useDeckLayout(deck: Deck): DeckLayout {
   const pages = useMemo(
     () => (measured ? paginate(activeBlocks, { heights, tails, pictures, grows }) : []),
     [measured, activeBlocks, heights, tails, pictures, grows],
+  );
+
+  const report = useMemo(
+    () => buildReport(pages, deck.contentType, usage),
+    [pages, deck.contentType, usage],
   );
 
   const onMeasure = useCallback(
@@ -60,7 +69,7 @@ export function useDeckLayout(deck: Deck): DeckLayout {
     [metricsKey],
   );
 
-  return { activeBlocks, blockMap, pages, measured, settled, onMeasure };
+  return { activeBlocks, blockMap, pages, report, measured, settled, onMeasure };
 }
 
 function sameMeasurements(a: Measurements, b: Measurements): boolean {

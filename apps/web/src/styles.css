@@ -185,6 +185,13 @@ a {
   color: var(--ink);
 }
 
+.btn.is-sm {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
 .btn.is-lg {
   height: 44px;
   padding: 0 20px;
